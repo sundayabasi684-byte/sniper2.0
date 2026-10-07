@@ -1,0 +1,16 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node bot.js"
+restartPolicyType = "always"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "migration-sniper"
+
+[[services]]
+name = "community-watcher"
+startCommand = "node communityWatcher.js"
+restartPolicyType = "always"
+restartPolicyMaxRetries = 10
