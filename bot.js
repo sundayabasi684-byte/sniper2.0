@@ -1612,12 +1612,6 @@ async function handleMigration(mint, source) {
   );
 }
 
-// ─────────────────────────────────────────────
-//  JUPITER SWAP — latest api.jup.ag/swap/v1
-//  3 retries, escalating slippage 500→700→800
-//  Dynamic priority fee via Jupiter auto
-// ─────────────────────────────────────────────
-
 async function executeBuy(mint, dex, result, overrideSol, precomputedBundle) {
 const JUP_HEADERS = process.env.JUPITER_API_KEY ? { "x-api-key": process.env.JUPITER_API_KEY } : {};
 
