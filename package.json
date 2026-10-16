@@ -2,9 +2,9 @@
   "name": "pump-migration-sniper",
   "version": "1.0.0",
   "description": "Pump.fun migration sniper — buys via Jupiter AMM after token graduation",
-  "main": "bot.js",
+  "main": "bot.cjs",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.cjs"
   },
   "dependencies": {
     "@solana/spl-token": "^0.4.9",
