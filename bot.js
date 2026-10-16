@@ -1621,42 +1621,65 @@ async function handleMigration(mint, source) {
 // Jupiter API key from .env (JUPITER_API_KEY). Sent on every Jupiter call.
 const JUP_HEADERS = process.env.JUPITER_API_KEY ? { "x-api-key": process.env.JUPITER_API_KEY } : {};
 
-async function jupiterSwap(inputMint, outputMint, amount, baseSlippage) {
-  var SLIPS = [baseSlippage, baseSlippage + 200, baseSlippage + 400];
-
-  var lastErr = null;
-  for (var attempt = 1; attempt <= 3; attempt++) {
-    try {
-      var slippage = SLIPS[attempt-1];
-      console.log("   🔄 Jupiter attempt " + attempt + "/3 | slip: " + slippage + "bps");
-      // Swap V2: one call returns an unsigned transaction for this wallet (taker = our wallet)
-      var orderRes = await axios.get(
-        "https://api.jup.ag/swap/v2/order",
-        {
-          headers: JUP_HEADERS,
-          params: {
-            inputMint:   inputMint,
-            outputMint:  outputMint,
-            amount:      amount,
-            taker:       wallet.publicKey.toBase58(),
-            slippageBps: slippage,
-          },
-          timeout: 10000,
-        }
-      );
-      var o = orderRes.data;
-      if (!o || !o.transaction) throw new Error("No order tx: " + (o && (o.errorMessage || o.errorCode) || "empty response"));
-      var tx = VersionedTransaction.deserialize(Buffer.from(o.transaction, "base64"));
-      tx.sign([wallet]);
-      return tx;
-    } catch (e) {
-      lastErr = e;
-      console.log("   ⚠️ Jupiter attempt " + attempt + " failed: " + e.message.slice(0, 100));
-      if (attempt < 3) await new Promise(function(r) { setTimeout(r, 1500 * attempt); });
+try {
+    console.log("   ⚡ Dispatching via Jito Bundle Engine...");
+    
+    // Execute atomically via Jito with a 0.0001 SOL tip
+    const jitoResult = await executeJitoBuy(mint, buyAmountSol, wallet, 0.0001);
+    
+    if (jitoResult.error) {
+      throw new Error(`Jito Engine Error: ${jitoResult.error.message || JSON.stringify(jitoResult.error)}`);
     }
+
+    var sig = jitoResult.result; // Jito bundle UUID / signature hash
+    var link = "https://solscan.io/tx/" + sig;
+    console.log("   ✅ JITO BUNDLE LANDED: " + link);
+
+    positions[mint] = {
+      symbol: dex.symbol, name: dex.name, mint,
+      buyPrice: dex.mcap, isCluster: result.isCluster,
+      tier1: false, tier2: false, tier3: false,
+      prevVol: dex.vol5m || 0,
+      entryVol: dex.vol5m || 0,
+      entryHolders: null,
+      lastMcap: dex.mcap, lastMcapTime: Date.now(), entryTime: Date.now(),
+      peakGain: 0,
+      mcapSnapshots: [{ mcap: dex.mcap, ts: Date.now() }],
+      solSpent: buySol,
+      entryLiq: dex.liq || 0, lastLiq: dex.liq || 0, liqDrainSince: null,
+    };
+
+    // Keep your baseline pool SOL & holder tracking timers intact...
+    setTimeout(async function() {
+      try {
+        var initPoolSol = await fetchOnChainPoolSol(mint);
+        if (initPoolSol !== null && positions[mint]) {
+          positions[mint].buyPoolSol = initPoolSol;
+        }
+      } catch (e) {}
+    }, 1000);
+
+    tg(
+      "🚀 *Jito Bundle Landed — " + dex.name + " (" + dex.symbol + ")*\n" +
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      "💰 Entry MCap:  $" + Math.round(dex.mcap).toLocaleString() + "\n" +
+      "💸 Spent:       " + buySol + " SOL (Protected)\n" +
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      "Mint: `" + mint + "`\n" +
+      "[View Bundle](" + link + ")"
+    );
+
+  } catch (err) {
+    console.error("   ❌ Jito Buy FAILED:", err.message);
+    tg("❌ *Jito Buy FAILED*\n*" + dex.name + "*\nError: `" + err.message.slice(0, 200) + "`");
+    var errMsg = err.message.toLowerCase();
+    if (errMsg.includes("insufficient") || errMsg.includes("not enough")) {
+      failedMints.add(mint);
+    }
+    delete positions[mint];
+  } finally {
+    buying.delete(mint);
   }
-  throw new Error("Jupiter failed: " + (lastErr && lastErr.message || "unknown"));
-}
 
 
 // ─────────────────────────────────────────────
