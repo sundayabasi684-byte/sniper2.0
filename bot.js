@@ -50,6 +50,7 @@ const bs58           = require("bs58");
 const WebSocket      = require("ws");
 const brain          = require("./brain");
 const { logPaperTrade, checkPaperPositions, paperTrades } = require("./paperLog");
+const { executeJitoBuy } = require("./jitoExecutor");
 
 
 
