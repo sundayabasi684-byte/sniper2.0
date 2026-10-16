@@ -25,9 +25,9 @@
  * ================================================================
  */
 
-require("dotenv").config();
-
-const dns = require("dns");
+import dotenv from "dotenv";
+dotenv.config();
+import dns from "dns";
 dns.setDefaultResultOrder("ipv4first");
 
 if (!process.env.RPC_URL) { console.error("❌ Missing RPC_URL"); process.exit(1); }
