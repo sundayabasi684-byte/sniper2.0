@@ -1617,7 +1617,8 @@ async function handleMigration(mint, source) {
 //  3 retries, escalating slippage 500→700→800
 //  Dynamic priority fee via Jupiter auto
 // ─────────────────────────────────────────────
-// Jupiter API key from .env (JUPITER_API_KEY). Sent on every Jupiter call.
+
+async function executeBuy(mint, dex, result, overrideSol, precomputedBundle) {
 const JUP_HEADERS = process.env.JUPITER_API_KEY ? { "x-api-key": process.env.JUPITER_API_KEY } : {};
 
 try {
