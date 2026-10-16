@@ -72,17 +72,17 @@ const CONFIG = {
   PRIORITY_FEE_MICROLAMPORTS: 250000,
 
   // ── Base filters (overridden by age-aware logic in runFilters) ──
-  MIN_LIQUIDITY_USD: 8000,
-  MAX_LIQUIDITY_USD: 15000,
+  MIN_LIQUIDITY_USD: 10000,
+  MAX_LIQUIDITY_USD: 20000,
   LIQUIDITY_DRAIN_PCT: 0.40, LIQUIDITY_DRAIN_CONFIRM_MS: 20000, LIQUIDITY_ABS_FLOOR: 2000,
-  MIN_VOLUME_USD:    30000,
+  MIN_VOLUME_USD:    40000,
   MIN_MCAP_USD:      10000,
   MAX_AGE_HOURS:     0.25,
-  MIN_HOLDERS:       40,     // minimum total holder count
-  MIN_LP_PER_HOLDER: 50,     // flat LP/holder threshold (replaces age-tiered)
+  MIN_HOLDERS:       60,     // minimum total holder count
+  MIN_LP_PER_HOLDER: 65,     // flat LP/holder threshold (replaces age-tiered)
 
   // ── Protection ─────────────────────── ADJUSTABLE
-  STOP_LOSS_PCT:   -25,
+  STOP_LOSS_PCT:   -20,
   VOLUME_DROP_PCT: 0.65, 
 
   // ── Cluster ────────────────────────── ADJUSTABLE
@@ -130,7 +130,7 @@ const CONFIG = {
   // Requires at least SLOPE_MIN_READINGS mcap snapshots before evaluating
   SLOPE_MIN_READINGS:      3,
   // Slope must be >= this value (0 = any upward movement required)
-  SLOPE_MIN:               0.4,
+  SLOPE_MIN:               800,
 
   // ── Wash trading (#3) ──────────────── ADJUSTABLE
   // Only flag wash if 5m volume exceeds this threshold (avoids false positives on new coins)
@@ -159,9 +159,9 @@ const CONFIG = {
   // ── Bundle detection ───────────────── ADJUSTABLE
   // Scans first txs after migration for coordinated sniper wallets
   BUNDLE_TX_LIMIT:       15,   // how many txs to scan (more = slower but thorough)
-  BUNDLE_SAME_SLOT:      3,    // min wallets buying in same slot = bundle flag
+  BUNDLE_SAME_SLOT:      8,    // min wallets buying in same slot = bundle flag
   BUNDLE_SIZE_DIFF_PCT:  15,   // max % difference in buy size to count as coordinated
-  BUNDLE_MAX_SCORE:      2,    // block if this many bundle signals fire (0=disable)
+  BUNDLE_MAX_SCORE:      1,    // block if this many bundle signals fire (0=disable)
 
   // ── Conviction exits ───────────────── ADJUSTABLE
   CONVICTION_MIN_GAIN:   50,   // must hit this % gain within time window
