@@ -25,10 +25,8 @@
  * ================================================================
  */
 
-import dotenv from "dotenv";
+const dotenv = require("dotenv");
 dotenv.config();
-import dns from "dns";
-dns.setDefaultResultOrder("ipv4first");
 
 if (!process.env.RPC_URL) { console.error("❌ Missing RPC_URL"); process.exit(1); }
 if (!process.env.WALLET_PRIVATE_KEY) { console.error("❌ Missing WALLET_PRIVATE_KEY"); process.exit(1); }
