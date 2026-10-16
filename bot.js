@@ -1,4 +1,5 @@
- ================================================================
+/**
+ *  ================================================================
  *  PUMP.FUN MIGRATION SNIPER — FINAL BUILD
  *
  *  Watches: 39azUYFWPz3VHgKCf3VChUwbpURdCHRxjWVowf5jUJjg
