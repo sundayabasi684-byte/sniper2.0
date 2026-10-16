@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Pump.fun migration sniper — buys via Jupiter AMM after token graduation",
   "main": "bot.js",
-  "type": "commonjs",
+  "type": "commonjs"
   "scripts": {
   "start": "node bot.js"
   },
