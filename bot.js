@@ -2813,25 +2813,31 @@ setInterval(function() {
 // so a slow scan can't stack up with the next tick and double the API calls.
 var watchScanBusy = false;
 setInterval(function() {
-  if (watchScanBusy) return;
-  watchScanBusy = true;
-  scanWatchlist()
-    .catch(function(e) { console.error("Watchlist:", e.message); })
-    .finally(function() { watchScanBusy = false; });
+    if (watchScanBusy) return;
+    watchScanBusy = true;
+    scanWatchlist()
+        .catch(function(e) { console.error("Watchlist:", e.message); })
+        .finally(function() { watchScanBusy = false; });
 }, CONFIG.WATCH_SCAN_MS);
 
-// ── 3hr session summary ───────────────────────────────────────────
+// --- 3hr session summary ----------------------------------
 setInterval(function() {
-  try { sendSessionSummary(); } catch (e) { console.error("Summary:", e.message); }
+    try { sendSessionSummary(); } catch (e) { console.error("Summary:", e.message); }
 }, 3 * 60 * 60 * 1000);
 
-// ── Dead position cleaner — every 15min ───────────────────────────
+// --- Dead position cleaner - every 15min ------------------
 setInterval(function() {
-  cleanDeadPositions().catch(function(e) { console.error("[Cleaner]:", e.message); });
+    cleanDeadPositions().catch(function(e) { console.error("[Cleaner]:", e.message); });
 }, 5 * 60 * 1000);
 
 setInterval(function() {
-    checkPaperPositions(fetchDex, fetchOnChainPoolSol).catch(function(e) { 
-        console.error("[PaperLog] Check error:", e.message); 
+    checkPaperPositions(fetchDex, fetchOnChainPoolSol).catch(function(e) {
+        console.error("[PaperLog] Check error:", e.message);
     });
 }, CONFIG.MONITOR_INTERVAL_MS);
+
+// --- START BOT --------------------------------------------
+main().catch(function(e) {
+    console.error("FATAL:", e.message);
+    process.exit(1);
+});
