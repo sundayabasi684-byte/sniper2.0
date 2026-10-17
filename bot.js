@@ -2831,7 +2831,7 @@ setInterval(function() {
 }, 5 * 60 * 1000);
 
 setInterval(function() {
-    checkPaperPositions(fetchDex, fetchOnChainPoolSol).catch(function(e) {
-  console.error("[PaperLog] Check error:", e.message);
-  });
+    checkPaperPositions(fetchDex, fetchOnChainPoolSol).catch(function(e) { 
+        console.error("[PaperLog] Check error:", e.message); 
+    });
 }, CONFIG.MONITOR_INTERVAL_MS);
