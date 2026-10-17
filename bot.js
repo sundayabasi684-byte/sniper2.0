@@ -2835,4 +2835,4 @@ setInterval(function() {
         console.error("[PaperLog] Check error:", e.message);
     });
 }, CONFIG.MONITOR_INTERVAL_MS);
-});
+};
