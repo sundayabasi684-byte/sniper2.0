@@ -1307,11 +1307,9 @@ async function migrationWalletBoughtThis(mint) {
           console.log("   ⭐ Migration wallet BOUGHT " + mint.slice(0, 8) + " — ultra priority!");
           return true;
         }
-      } catch (e) { /* skip individual tx errors */ 
-    return false;
-  catch (e) {
-    return false;
-  }
+     } catch (e) { /* skip individual tx errors */
+      return false;
+    }
 }
 
 // ─────────────────────────────────────────────
