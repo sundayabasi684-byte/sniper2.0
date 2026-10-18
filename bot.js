@@ -1309,7 +1309,7 @@ async function migrationWalletBoughtThis(mint) {
         }
       } catch (e) { /* skip individual tx errors */ 
     return false;
-  } catch (e) {
+  catch (e) {
     return false;
   }
 }
