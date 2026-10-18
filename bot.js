@@ -22,7 +22,7 @@
  *  Refresh shows live score + all checks
  *  Force Buy bypasses filters
  * ================================================================
- */
+ *
 
 const dotenv = require("dotenv");
 dotenv.config();
@@ -47,10 +47,8 @@ const axios          = require("axios");
 const bs58           = require("bs58");
 const WebSocket      = require("ws");
 const brain          = require("./brain");
-const { logPaperTrade, checkPaperPositions, paperTrades } = require("./paperLog");
 const { executeJitoBuy } = require("./jitoExecutor");
-
-
+const { logPaperTrade, checkPaperPositions, paperTrades } = require("./paperLog");
 
 // ================================================================
 //  CONFIG — edit these values to tune the bot
