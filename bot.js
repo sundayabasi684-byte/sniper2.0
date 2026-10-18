@@ -6,7 +6,7 @@
  *  Buy:     PumpSwap SDK — direct on-chain, no external API
  *  Sell:    PumpSwap SDK — direct on-chain, no external API
  *  Data:    DexScreener with fast retry
- *  Detect:  WebSocket (primary) + RPC poll (backup)
+ *  Detect:  WebSocket (primary) + RPC poll (backup)  
  *
  *  AGE-AWARE FILTERS:
  *  Vol/MCap:   0s-30s=0.05x  30s-2m=0.15x  2m-10m=0.3x  10m+=0.8x
@@ -1307,7 +1307,7 @@ async function migrationWalletBoughtThis(mint) {
           console.log("   ⭐ Migration wallet BOUGHT " + mint.slice(0, 8) + " — ultra priority!");
           return true;
         }
-      } catch (e) { /* skip individual tx errors */ }
+      } catch (e) { /* skip individual tx errors */
     }
     return false;
   } catch (e) {
