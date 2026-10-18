@@ -1310,7 +1310,6 @@ async function migrationWalletBoughtThis(mint) {
      } catch (e) { /* skip individual tx errors */
       return false;
     }
-}
 
 // ─────────────────────────────────────────────
 //  HANDLE MIGRATION
