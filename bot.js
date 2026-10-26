@@ -1696,7 +1696,7 @@ try {
   } finally {
     buying.delete(mint);
   }
-
+}
 
 // ─────────────────────────────────────────────
 //  HONEYPOT SIMULATION (#4)
