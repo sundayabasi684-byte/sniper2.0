@@ -1518,4 +1518,38 @@ async function handleMigration(mint, source) {
   var bar    = "█".repeat(result.score) + "░".repeat(result.total - result.score);
   console.log("   Score: " + result.score + "/7 [" + bar + "] " +
     (result.pass ? "🟢 BUYING" : "🔴 SKIP"));
-  Object.values(result.checks).forEach(function(c
+  Object.values(result.checks).forEach(function(c) {
+    console.log("   " + (c.pass ? "✅" : "❌") + " " + c.label + ": " + c.val);
+  });
+
+  // ── Brain observes every coin — builds feed trend picture passively ──
+  try { brain.observeCoin(dex.symbol, dex.name, result.score, result.total); } catch(e) {}
+
+  // ── Brain advisor — informational only, never blocks a buy ──────────
+  var advice = CONFIG.BRAIN_ENABLED
+    ? brain.evaluate(dex, pnlTrades)
+    : { nudge: 0, mood: "neutral", signals: [], summary: "🧠 Brain: disabled" };
+  console.log("🧠 " + advice.summary);
+  // Hot flag — brain detected a trending pattern match
+  if (advice.hot) console.log("   🌶  Brain: trending pattern match — " + dex.symbol);
+
+    if (!result.pass) {
+    var isFreshData = dex.ageMin < 2; // only treat 0-liq/0-mcap as "data not loaded yet" if the token itself is brand new
+    var liqZero  = !result.checks.liq.pass  && dex.liq  === 0 && isFreshData;
+    var mcapZero = !result.checks.mcap.pass && dex.mcap === 0 && isFreshData;
+    var retries  = entry && entry.retries || 0;
+
+    if ((liqZero || mcapZero) && retries < CONFIG.RESCAN_MAX) {
+
+      // Silent rescan — no TG noise for data-incomplete coins
+      setTimeout(function() {
+        var e = processedMints.get(mint);
+        if (e && e.retries < CONFIG.RESCAN_MAX) queueMigration(mint, "Rescan", 1);
+      }, CONFIG.RESCAN_DELAY_MS);
+      return;
+    }
+
+    // Only alert on 5+/7 — below that is just noise
+    if (result.score >= 5) {
+      tgWithButtons(
+"🔴 *#" + dex.symbol + "*  |  MC: *$" + Math.round
