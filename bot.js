@@ -1,9 +1,10 @@
 /**
  * CLEANED PUMP.FUN MIGRATION SNIPER
- * - No syntax errors
+ * - Valid JavaScript
  * - No duplicate broken monitor block
- * - Single coherent bot flow
+ * - No imaginary or undefined functions
  * - Safe fallbacks for optional modules
+ * - Single coherent bot flow
  */
 
 const dotenv = require("dotenv");
@@ -12,6 +13,7 @@ dotenv.config();
 const axios = require("axios");
 const WebSocket = require("ws");
 const bs58 = require("bs58");
+
 const {
   Connection,
   PublicKey,
@@ -33,12 +35,24 @@ const brain = (() => {
     return {
       observeCoin() {},
       evaluate() {
-        return { nudge: 0, mood: "neutral", signals: [], summary: "🧠 Brain: disabled", hot: false };
+        return {
+          nudge: 0,
+          mood: "neutral",
+          signals: [],
+          summary: "🧠 Brain: disabled",
+          hot: false,
+        };
       },
       recordTrade() {},
-      getBrainReport() { return "🧠 Brain report unavailable"; },
-      getPatternsReport() { return "📊 Patterns unavailable"; },
-      getTrendsReport() { return "📈 Trends unavailable"; }
+      getBrainReport() {
+        return "🧠 Brain report unavailable";
+      },
+      getPatternsReport() {
+        return "📊 Patterns unavailable";
+      },
+      getTrendsReport() {
+        return "📈 Trends unavailable";
+      },
     };
   }
 })();
@@ -48,7 +62,10 @@ try {
   jitoExecutor = require("./jitoExecutor");
 } catch (e) {
   jitoExecutor = {
-    executeTrade: async () => ({ success: true, txId: "mock-jito-" + Date.now() })
+    executeTrade: async () => ({
+      success: true,
+      txId: "mock-jito-" + Date.now(),
+    }),
   };
 }
 
@@ -59,17 +76,22 @@ try {
   paperLog = {
     logPaperTrade() {},
     checkPaperPositions() {},
-    paperTrades: []
+    paperTrades: [],
   };
 }
 
-const JUP_HEADERS = process.env.JUPITER_API_KEY ? { "x-api-key": process.env.JUPITER_API_KEY } : {};
+const JUP_HEADERS = process.env.JUPITER_API_KEY
+  ? { "x-api-key": process.env.JUPITER_API_KEY }
+  : {};
 
 // ==========================================
 // CONFIG
 // ==========================================
 const CONFIG = {
-  RPC_URL: process.env.RPC_URL || "https://mainnet.helius-rpc.com/?api-key=" + (process.env.HELIUS_API_KEY || "0528a525-35e6-4fb9-8c54-90fcaf29a7ca"),
+  RPC_URL:
+    process.env.RPC_URL ||
+    "https://mainnet.helius-rpc.com/?api-key=" +
+      (process.env.HELIUS_API_KEY || "0528a525-35e6-4fb9-8c54-90fcaf29a7ca"),
   WALLET_PRIVATE_KEY: process.env.WALLET_PRIVATE_KEY,
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
   TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID,
@@ -84,7 +106,7 @@ const CONFIG = {
 
   MIN_LIQUIDITY_USD: 10000,
   MAX_LIQUIDITY_USD: 20000,
-  LIQUIDITY_DRAIN_PCT: 0.40,
+  LIQUIDITY_DRAIN_PCT: 0.4,
   LIQUIDITY_DRAIN_CONFIRM_MS: 20000,
   LIQUIDITY_ABS_FLOOR: 2000,
   MIN_VOLUME_USD: 30000,
@@ -117,7 +139,7 @@ const CONFIG = {
     { gain: 3000, floor: 2700 },
     { gain: 5000, floor: 4550 },
     { gain: 7000, floor: 6440 },
-    { gain: 10000, floor: 9300 }
+    { gain: 10000, floor: 9300 },
   ],
 
   TRAIL_STALL_MS: 180000,
@@ -171,7 +193,7 @@ const CONFIG = {
   CONVICTION_TIME_MS: 10 * 60 * 1000,
   SLIDING_STOP_3MIN: -15,
   SLIDING_STOP_8MIN: 50,
-  VOL_VELOCITY_DROP: 0.60,
+  VOL_VELOCITY_DROP: 0.6,
   MOMENTUM_DROP: 0.85,
 };
 
@@ -201,6 +223,7 @@ const bondingCheckCache = new Map();
 const mintAuthCache = new Map();
 const poolSolCache = new Map();
 const missCache = new Map();
+
 let lastSig = null;
 let monitorRunning = false;
 let cleanerRunning = false;
@@ -219,8 +242,9 @@ try {
 const migrationPk = new PublicKey(CONFIG.MIGRATION_PROGRAM);
 const PUMP_AMM_PK = new PublicKey(CONFIG.PUMP_AMM_PK);
 const PUMP_PROG_PK = new PublicKey(CONFIG.PUMP_PROGRAM_PK);
-
-const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+const TOKEN_2022_PROGRAM_ID = new PublicKey(
+  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+);
 
 const SKIP = new Set([
   "11111111111111111111111111111111",
@@ -250,11 +274,19 @@ function setMintState(mint, state, meta = {}) {
     source: meta.source || "unknown",
     score: meta.score || 0,
     lastUpdated: Date.now(),
-    ...meta
+    ...meta,
   });
 
   if (prev && prev.state !== state) {
-    console.log("   🗺 [" + mint.slice(0, 8) + "] " + prev.state + " → " + state + (meta.reason ? " (" + meta.reason + ")" : ""));
+    console.log(
+      "   🗺 [" +
+        mint.slice(0, 8) +
+        "] " +
+        prev.state +
+        " → " +
+        state +
+        (meta.reason ? " (" + meta.reason + ")" : "")
+    );
   }
 }
 
@@ -291,6 +323,7 @@ function nextTg() {
   tgBusy = true;
   const item = tgQ.shift();
   const wait = Math.max(0, 1000 - (Date.now() - lastTg));
+
   setTimeout(() => {
     lastTg = Date.now();
     const payload = {
@@ -299,15 +332,20 @@ function nextTg() {
       parse_mode: "Markdown",
       disable_web_page_preview: true,
     };
+
     if (item.buttons) {
       payload.reply_markup = { inline_keyboard: item.buttons };
     }
 
-    axios.post(
-      "https://api.telegram.org/bot" + CONFIG.TELEGRAM_BOT_TOKEN + "/sendMessage",
-      payload,
-      { timeout: 15000 }
-    ).catch((e) => console.error("TG send:", e.message))
+    axios
+      .post(
+        "https://api.telegram.org/bot" +
+          CONFIG.TELEGRAM_BOT_TOKEN +
+          "/sendMessage",
+        payload,
+        { timeout: 15000 }
+      )
+      .catch((e) => console.error("TG send:", e.message))
       .finally(() => {
         setTimeout(nextTg, 1000);
       });
@@ -315,11 +353,13 @@ function nextTg() {
 }
 
 function tgAnswerCallback(id, text) {
-  axios.post(
-    "https://api.telegram.org/bot" + CONFIG.TELEGRAM_BOT_TOKEN + "/answerCallbackQuery",
-    { callback_query_id: id, text: text || "" },
-    { timeout: 8000 }
-  ).catch(() => {});
+  axios
+    .post(
+      "https://api.telegram.org/bot" + CONFIG.TELEGRAM_BOT_TOKEN + "/answerCallbackQuery",
+      { callback_query_id: id, text: text || "" },
+      { timeout: 8000 }
+    )
+    .catch(() => {});
 }
 
 async function pollCallbacks() {
@@ -327,8 +367,11 @@ async function pollCallbacks() {
 
   try {
     const res = await axios.get(
-      "https://api.telegram.org/bot" + CONFIG.TELEGRAM_BOT_TOKEN +
-      "/getUpdates?offset=" + tgOffset + "&timeout=2&allowed_updates=[%22callback_query%22,%22message%22]",
+      "https://api.telegram.org/bot" +
+        CONFIG.TELEGRAM_BOT_TOKEN +
+        "/getUpdates?offset=" +
+        tgOffset +
+        "&timeout=2&allowed_updates=[%22callback_query%22,%22message%22]",
       { timeout: 12000 }
     );
 
@@ -353,34 +396,68 @@ async function pollCallbacks() {
           } else {
             const e2 = processedMints.get(mint);
             const fsa = (e2 && e2.firstSeenAt) || Date.now();
-            const bestTs2 = (dex.pairCreatedAt && dex.pairCreatedAt > 0)
-              ? Math.min(fsa, dex.pairCreatedAt)
-              : fsa;
+            const bestTs2 =
+              dex.pairCreatedAt && dex.pairCreatedAt > 0
+                ? Math.min(fsa, dex.pairCreatedAt)
+                : fsa;
             dex.ageMin = (Date.now() - bestTs2) / 60000;
             dex.ageHours = dex.ageMin / 60;
+
             const result = await runFilters(mint, dex);
             const bar = "█".repeat(result.score) + "░".repeat(result.total - result.score);
+
             tgWithButtons(
-              "🔄 *Refresh — " + dex.name + " (" + dex.symbol + ")*\n" +
-              "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-              "📊 Score: *" + result.score + "/" + result.total + "* [" + bar + "] " +
-              (result.pass ? "🟢 PASS" : "🔴 FAIL") + "\n" +
-              "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-              "💰 MCap: $" + Math.round(dex.mcap).toLocaleString() + "\n" +
-              "💧 Liq: $" + Math.round(dex.liq).toLocaleString() + "\n" +
-              "📈 Vol: $" + Math.round(dex.vol24h).toLocaleString() + "\n" +
-              "⏱ Age: " + fmtAge(dex.ageMin) + "\n" +
-              "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-              "*Checks:*\n" + fmtChecks(result.checks) + "\n" +
-              "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-              "[📊 Chart](https://dexscreener.com/solana/" + mint + ")  |  " +
-              "[🐦 Birdeye](https://birdeye.so/token/" + mint + "?chain=solana)  |  " +
-              "[⚡ Swap](https://jup.ag/swap/SOL-" + mint + ")\n" +
-              "Mint: `" + mint + "`",
-              [[
-                { text: "🔄 Refresh again", callback_data: "refresh:" + mint },
-                { text: "🟢 Force Buy", callback_data: "buy:" + mint },
-              ]]
+              "🔄 *Refresh — " +
+                dex.name +
+                " (" +
+                dex.symbol +
+                ")*\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "📊 Score: *" +
+                result.score +
+                "/" +
+                result.total +
+                "* [" +
+                bar +
+                "] " +
+                (result.pass ? "🟢 PASS" : "🔴 FAIL") +
+                "\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "💰 MCap: $" +
+                Math.round(dex.mcap).toLocaleString() +
+                "\n" +
+                "💧 Liq: $" +
+                Math.round(dex.liq).toLocaleString() +
+                "\n" +
+                "📈 Vol: $" +
+                Math.round(dex.vol24h).toLocaleString() +
+                "\n" +
+                "⏱ Age: " +
+                fmtAge(dex.ageMin) +
+                "\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "*Checks:*\n" +
+                fmtChecks(result.checks) +
+                "\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "[📊 Chart](https://dexscreener.com/solana/" +
+                mint +
+                ")  |  " +
+                "[🐦 Birdeye](https://birdeye.so/token/" +
+                mint +
+                "?chain=solana)  |  " +
+                "[⚡ Swap](https://jup.ag/swap/SOL-" +
+                mint +
+                ")\n" +
+                "Mint: `" +
+                mint +
+                "`",
+              [
+                [
+                  { text: "🔄 Refresh again", callback_data: "refresh:" + mint },
+                  { text: "🟢 Force Buy", callback_data: "buy:" + mint },
+                ],
+              ]
             );
           }
         }
@@ -392,6 +469,7 @@ async function pollCallbacks() {
           } else {
             console.log("🟢 [TG] Force buy:", mint.slice(0, 8));
             tg("🟢 *Force buy triggered* — `" + mint.slice(0, 8) + "...`");
+
             const dex = await fetchDex(mint, 3);
             if (dex) {
               const result = await runFilters(mint, dex);
@@ -410,31 +488,57 @@ async function pollCallbacks() {
 
         if (cmd === "/pause") {
           botPaused = true;
-          const activeCount = Object.keys(positions).filter((m) => positions[m] && positions[m].symbol).length;
-          tg("⏸ *Bot PAUSED*\nNo new buys will be made.\nCurrent positions: " + activeCount + "\nSells and monitoring still active.\nType /resume to restart buying.");
+          const activeCount = Object.keys(positions).filter(
+            (m) => positions[m] && positions[m].symbol
+          ).length;
+          tg(
+            "⏸ *Bot PAUSED*\nNo new buys will be made.\nCurrent positions: " +
+              activeCount +
+              "\nSells and monitoring still active.\nType /resume to restart buying."
+          );
         } else if (cmd === "/resume") {
           botPaused = false;
           tg("▶️ *Bot RESUMED*\nBuying is active again. Ready to snipe! 🎯");
         } else if (cmd === "/status") {
-          const activeMints = Object.keys(positions).filter((m) => positions[m] && positions[m].symbol);
-          const posLines = activeMints.length === 0
-            ? "None"
-            : activeMints.map((m) => {
-                const p = positions[m];
-                const gain = p.buyPrice > 0 ? (((p.lastMcap || p.buyPrice) - p.buyPrice) / p.buyPrice * 100).toFixed(1) : "0.0";
-                const sign = parseFloat(gain) >= 0 ? "+" : "";
-                return "• " + p.symbol + " " + sign + gain + "%";
-              }).join("\n");
+          const activeMints = Object.keys(positions).filter(
+            (m) => positions[m] && positions[m].symbol
+          );
+          const posLines =
+            activeMints.length === 0
+              ? "None"
+              : activeMints
+                  .map((m) => {
+                    const p = positions[m];
+                    const gain =
+                      p.buyPrice > 0
+                        ? (((p.lastMcap || p.buyPrice) - p.buyPrice) / p.buyPrice) * 100
+                        : 0;
+                    const sign = gain >= 0 ? "+" : "";
+                    return "• " + p.symbol + " " + sign + gain.toFixed(1) + "%";
+                  })
+                  .join("\n");
 
           tg(
-            (botPaused ? "⏸ *Bot Status — PAUSED*" : "▶️ *Bot Status — ACTIVE*") + "\n" +
-            "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-            "📊 Positions: " + activeMints.length + "/" + CONFIG.MAX_POSITIONS + "\n" +
-            posLines + "\n" +
-            "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-            "👁 Watchlist: " + watchlist.size + " coins\n" +
-            "🚫 Blocked: " + failedMints.size + " mints\n" +
-            "📈 Trades: " + pnlTrades.length + " this session"
+            (botPaused ? "⏸ *Bot Status — PAUSED*" : "▶️ *Bot Status — ACTIVE*") +
+              "\n" +
+              "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+              "📊 Positions: " +
+              activeMints.length +
+              "/" +
+              CONFIG.MAX_POSITIONS +
+              "\n" +
+              posLines +
+              "\n" +
+              "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+              "👁 Watchlist: " +
+              watchlist.size +
+              " coins\n" +
+              "🚫 Blocked: " +
+              failedMints.size +
+              " mints\n" +
+              "📈 Trades: " +
+              pnlTrades.length +
+              " this session"
           );
         } else if (cmd === "/paper") {
           const pt = paperTrades;
@@ -445,24 +549,59 @@ async function pollCallbacks() {
             const plosses = pt.length - pwins;
             const pwr = ((pwins / pt.length) * 100).toFixed(0);
             const pavg = (pt.reduce((a, t) => a + t.gain, 0) / pt.length).toFixed(1);
-            const pbest = pt.reduce((a, t) => t.gain > a.gain ? t : a, pt[0]);
-            const pworst = pt.reduce((a, t) => t.gain < a.gain ? t : a, pt[0]);
-            const plines = pt.slice(-20).map((t) => {
-              const s = t.gain >= 0 ? "+" : "";
-              return (t.win ? "🟢" : "🔴") + " " + t.symbol + "  " + s + t.gain.toFixed(1) + "%  (" + t.heldMin + "min)  _" + t.exitReason + "_";
-            }).join("\n");
+            const pbest = pt.reduce((a, t) => (t.gain > a.gain ? t : a), pt[0]);
+            const pworst = pt.reduce((a, t) => (t.gain < a.gain ? t : a), pt[0]);
+            const plines = pt
+              .slice(-20)
+              .map((t) => {
+                const s = t.gain >= 0 ? "+" : "";
+                return (
+                  (t.win ? "🟢" : "🔴") +
+                  " " +
+                  t.symbol +
+                  "  " +
+                  s +
+                  t.gain.toFixed(1) +
+                  "%  (" +
+                  t.heldMin +
+                  "min)  _" +
+                  t.exitReason +
+                  "_"
+                );
+              })
+              .join("\n");
 
             tg(
               "📋 *Paper Trading Summary*\n" +
-              "━━━━━━━━━━━━━━━━━━━━\n" +
-              "📊 Signals: *" + pt.length + "* (" + pwins + "W / " + plosses + "L)\n" +
-              "🎯 Win rate: *" + pwr + "%*\n" +
-              "📈 Avg gain: *" + (pavg >= 0 ? "+" : "") + pavg + "%*\n" +
-              "━━━━━━━━━━━━━━━━━━━━\n" +
-              "🏆 Best: " + pbest.symbol + "  +" + pbest.gain.toFixed(1) + "%\n" +
-              "💀 Worst: " + pworst.symbol + "  " + pworst.gain.toFixed(1) + "%\n" +
-              "━━━━━━━━━━━━━━━━━━━━\n" +
-              "*Last 20 trades:*\n" + plines
+                "━━━━━━━━━━━━━━━━━━━━\n" +
+                "📊 Signals: *" +
+                pt.length +
+                "* (" +
+                pwins +
+                "W / " +
+                plosses +
+                "L)\n" +
+                "🎯 Win rate: *" +
+                pwr +
+                "%*\n" +
+                "📈 Avg gain: *" +
+                (pavg >= 0 ? "+" : "") +
+                pavg +
+                "%*\n" +
+                "━━━━━━━━━━━━━━━━━━━━\n" +
+                "🏆 Best: " +
+                pbest.symbol +
+                "  +" +
+                pbest.gain.toFixed(1) +
+                "%\n" +
+                "💀 Worst: " +
+                pworst.symbol +
+                "  " +
+                pworst.gain.toFixed(1) +
+                "%\n" +
+                "━━━━━━━━━━━━━━━━━━━━\n" +
+                "*Last 20 trades:*\n" +
+                plines
             );
           }
         } else if (cmd === "/brain") {
@@ -471,12 +610,26 @@ async function pollCallbacks() {
           const stateLines = [];
           mintState.forEach((v, m) => {
             const age = Math.round((Date.now() - v.lastUpdated) / 1000);
-            stateLines.push("• `" + m.slice(0, 8) + "` → *" + v.state + "* [" + age + "s ago] " + (v.reason ? v.reason.slice(0, 40) : "") + (v.source ? " src:" + v.source : ""));
+            stateLines.push(
+              "• `" +
+                m.slice(0, 8) +
+                "` → *" +
+                v.state +
+                "* [" +
+                age +
+                "s ago] " +
+                (v.reason ? v.reason.slice(0, 40) : "") +
+                (v.source ? " src:" + v.source : "")
+            );
           });
 
-          const stateMsg = mintState.size === 0
-            ? "🗺 *Mint State Machine*\nNo mints tracked yet."
-            : "🗺 *Mint State Machine* (" + mintState.size + " mints)\n━━━━━━━━━━━━━━━━━━━━━━━━\n" + stateLines.slice(-20).join("\n");
+          const stateMsg =
+            mintState.size === 0
+              ? "🗺 *Mint State Machine*\nNo mints tracked yet."
+              : "🗺 *Mint State Machine* (" +
+                mintState.size +
+                " mints)\n━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                stateLines.slice(-20).join("\n");
 
           tg(stateMsg);
         } else if (cmd === "/patterns") {
@@ -490,7 +643,7 @@ async function pollCallbacks() {
     const msg = e.message || "";
     if (msg.includes("409")) {
       tgPollBackoff = Math.min(tgPollBackoff * 2, 60000);
-      console.log("⚠️ TG 409 — backing off " + (tgPollBackoff / 1000) + "s");
+      console.log("⚠️ TG 409 — backing off " + tgPollBackoff / 1000 + "s");
       await new Promise((r) => setTimeout(r, tgPollBackoff));
     } else if (!msg.includes("timeout") && !msg.includes("ECONNRESET")) {
       console.error("CB poll error:", msg);
@@ -504,21 +657,24 @@ function startCallbackPolling() {
     setTimeout(loop, tgPollBackoff);
   };
 
-  axios.post(
-    "https://api.telegram.org/bot" + CONFIG.TELEGRAM_BOT_TOKEN + "/deleteWebhook",
-    { drop_pending_updates: true },
-    { timeout: 10000 }
-  ).then(() => {
-    console.log("✅ Webhook cleared — buttons active");
-    loop();
-  }).catch(() => {
-    console.log("⚠️ Webhook clear failed — starting anyway");
-    loop();
-  });
+  axios
+    .post(
+      "https://api.telegram.org/bot" + CONFIG.TELEGRAM_BOT_TOKEN + "/deleteWebhook",
+      { drop_pending_updates: true },
+      { timeout: 10000 }
+    )
+    .then(() => {
+      console.log("✅ Webhook cleared — buttons active");
+      loop();
+    })
+    .catch(() => {
+      console.log("⚠️ Webhook clear failed — starting anyway");
+      loop();
+    });
 }
 
 // ==========================================
-// DATA FETCHERS
+// UTILS
 // ==========================================
 function fmtAge(ageMin) {
   const s = Math.round(ageMin * 60);
@@ -527,13 +683,26 @@ function fmtAge(ageMin) {
   return (ageMin / 60).toFixed(1) + "h";
 }
 
+function fmtChecks(checks) {
+  return Object.values(checks)
+    .map((c) => {
+      return (c.pass ? "✅" : "❌") + " " + c.label + ": " + c.val;
+    })
+    .join("\n");
+}
+
+// ==========================================
+// DATA FETCHERS
+// ==========================================
 async function fetchGecko(mint) {
   try {
     const res = await axios.get(
-      "https://api.geckoterminal.com/api/v2/networks/solana/tokens/" + mint + "/pools?page=1",
+      "https://api.geckoterminal.com/api/v2/networks/solana/tokens/" +
+        mint +
+        "/pools?page=1",
       {
         timeout: 5000,
-        headers: { Accept: "application/json;version=20230302" }
+        headers: { Accept: "application/json;version=20230302" },
       }
     );
 
@@ -541,7 +710,10 @@ async function fetchGecko(mint) {
     if (!pools || pools.length === 0) return null;
 
     const pool = pools.sort((a, b) => {
-      return parseFloat(b.attributes.reserve_in_usd || 0) - parseFloat(a.attributes.reserve_in_usd || 0);
+      return (
+        parseFloat(b.attributes.reserve_in_usd || 0) -
+        parseFloat(a.attributes.reserve_in_usd || 0)
+      );
     })[0];
 
     const attr = pool.attributes;
@@ -550,7 +722,9 @@ async function fetchGecko(mint) {
     const vol24h = parseFloat((attr.volume_usd && attr.volume_usd.h24) || 0);
     const vol5m = parseFloat((attr.volume_usd && attr.volume_usd.m5) || 0);
     const price = parseFloat(attr.base_token_price_usd || 0);
-    const createdAt = attr.pool_created_at ? new Date(attr.pool_created_at).getTime() : Date.now();
+    const createdAt = attr.pool_created_at
+      ? new Date(attr.pool_created_at).getTime()
+      : Date.now();
     const ageMs = Date.now() - createdAt;
     const txns = attr.transactions || {};
     const buys5m = (txns.m5 && txns.m5.buys) || 0;
@@ -560,7 +734,9 @@ async function fetchGecko(mint) {
     let name = "Unknown";
     try {
       const incl = res.data.included || [];
-      const tok = incl.find((i) => i.type === "token" && i.attributes && i.attributes.symbol);
+      const tok = incl.find(
+        (i) => i.type === "token" && i.attributes && i.attributes.symbol
+      );
       if (tok) {
         symbol = tok.attributes.symbol;
         name = tok.attributes.name || name;
@@ -606,11 +782,14 @@ async function fetchDex(mint, maxRetries = 6) {
 
       const pairs = res.data && res.data.pairs;
       if (pairs && pairs.length > 0) {
-        const pair = pairs.find((p) => p.dexId && p.dexId.toLowerCase().indexOf("pump") > -1)
-          || pairs.sort((a, b) => {
-              return parseFloat((b.liquidity && b.liquidity.usd) || 0) -
-                parseFloat((a.liquidity && a.liquidity.usd) || 0);
-            })[0];
+        const pair =
+          pairs.find((p) => p.dexId && p.dexId.toLowerCase().indexOf("pump") > -1) ||
+          pairs.sort((a, b) => {
+            return (
+              parseFloat((b.liquidity && b.liquidity.usd) || 0) -
+              parseFloat((a.liquidity && a.liquidity.usd) || 0)
+            );
+          })[0];
 
         const liq = parseFloat((pair.liquidity && pair.liquidity.usd) || 0);
         const mcap = parseFloat(pair.fdv || pair.marketCap || 0);
@@ -632,8 +811,13 @@ async function fetchDex(mint, maxRetries = 6) {
             pairCreatedAt: pair.pairCreatedAt || 0,
             buys5m: (pair.txns && pair.txns.m5 && pair.txns.m5.buys) || 0,
             sells5m: (pair.txns && pair.txns.m5 && pair.txns.m5.sells) || 0,
-            hasSocials: !!(pair.info && pair.info.socials && pair.info.socials.length > 0),
-            hasTwitter: !!(pair.info && pair.info.socials && pair.info.socials.some((s) => s.type === "twitter" || s.type === "x")),
+            hasSocials:
+              !!(pair.info && pair.info.socials && pair.info.socials.length > 0),
+            hasTwitter: !!(
+              pair.info &&
+              pair.info.socials &&
+              pair.info.socials.some((s) => s.type === "twitter" || s.type === "x")
+            ),
             socials: (pair.info && pair.info.socials) || [],
           };
         }
@@ -645,7 +829,7 @@ async function fetchDex(mint, maxRetries = 6) {
     }
 
     if (i < maxRetries) {
-      const delay = is429 ? 15000 : (i <= 2 ? 1500 : i <= 4 ? 3000 : 6000);
+      const delay = is429 ? 15000 : i <= 2 ? 1500 : i <= 4 ? 3000 : 6000;
       await new Promise((r) => setTimeout(r, delay));
     }
   }
@@ -695,7 +879,8 @@ async function fetchHolders(mint) {
     ]);
 
     const accounts = results[0] && results[0].value;
-    const totalSupply = results[1] && results[1].value && parseFloat(results[1].value.amount);
+    const totalSupply =
+      results[1] && results[1].value && parseFloat(results[1].value.amount);
 
     if (!accounts || accounts.length === 0 || !totalSupply) return null;
 
@@ -707,9 +892,14 @@ async function fetchHolders(mint) {
       const bal = parseFloat(accounts[i].amount || "0");
       if (bal === 0) continue;
 
-      if (i === 0) { poolBal += bal; continue; }
-      if (poolAddress && addr === poolAddress) { poolBal += bal; continue; }
-
+      if (i === 0) {
+        poolBal += bal;
+        continue;
+      }
+      if (poolAddress && addr === poolAddress) {
+        poolBal += bal;
+        continue;
+      }
       if ((bal / totalSupply) * 100 > 60) {
         poolBal += bal;
         continue;
@@ -722,7 +912,7 @@ async function fetchHolders(mint) {
     if (circulatingSupply <= 0 || holders.length === 0) return null;
 
     return holders.map((h) => ({
-      percentage: (h.amount / circulatingSupply) * 100
+      percentage: (h.amount / circulatingSupply) * 100,
     }));
   } catch (e) {
     console.log("   ⚠️ fetchHolders error:", e.message);
@@ -751,19 +941,24 @@ async function getTotalHolderCount(mint) {
     const heliusUrl = "https://mainnet.helius-rpc.com/?api-key=" + apiKey;
 
     while (true) {
-      const res = await axios.post(heliusUrl, {
-        jsonrpc: "2.0",
-        id: "hc" + page,
-        method: "getTokenAccounts",
-        params: {
-          mint,
-          limit: 1000,
-          page,
-          options: { showZeroBalance: false }
-        }
-      }, { timeout: 10000 });
+      const res = await axios.post(
+        heliusUrl,
+        {
+          jsonrpc: "2.0",
+          id: "hc" + page,
+          method: "getTokenAccounts",
+          params: {
+            mint,
+            limit: 1000,
+            page,
+            options: { showZeroBalance: false },
+          },
+        },
+        { timeout: 10000 }
+      );
 
-      const accounts = res.data && res.data.result && res.data.result.token_accounts;
+      const accounts =
+        res.data && res.data.result && res.data.result.token_accounts;
       if (!accounts || accounts.length === 0) break;
       total += accounts.length;
       if (accounts.length < 1000) break;
@@ -780,23 +975,6 @@ async function getTotalHolderCount(mint) {
 }
 
 // ==========================================
-// UTILS
-// ==========================================
-async function getTokenProgramId(mintPk) {
-  try {
-    const info = await connection.getAccountInfo(mintPk);
-    if (info && info.owner.equals(TOKEN_2022_PROGRAM_ID)) return TOKEN_2022_PROGRAM_ID;
-  } catch (e) {}
-  return TOKEN_PROGRAM_ID;
-}
-
-function fmtChecks(checks) {
-  return Object.values(checks).map((c) => {
-    return (c.pass ? "✅" : "❌") + " " + c.label + ": " + c.val;
-  }).join("\n");
-}
-
-// ==========================================
 // FILTERS
 // ==========================================
 async function runFilters(mint, dex) {
@@ -809,15 +987,24 @@ async function runFilters(mint, dex) {
   checks.mcap = {
     pass: mcapPass,
     label: "MCap",
-    val: "$" + Math.round(dex.mcap).toLocaleString()
+    val: "$" + Math.round(dex.mcap).toLocaleString(),
   };
 
-  const liqPass = dex.liq >= CONFIG.MIN_LIQUIDITY_USD && dex.liq <= CONFIG.MAX_LIQUIDITY_USD;
+  const liqPass =
+    dex.liq >= CONFIG.MIN_LIQUIDITY_USD &&
+    dex.liq <= CONFIG.MAX_LIQUIDITY_USD;
   if (liqPass) score++;
   checks.liq = {
     pass: liqPass,
     label: "Liquidity",
-    val: "$" + Math.round(dex.liq).toLocaleString() + " (need $" + CONFIG.MIN_LIQUIDITY_USD.toLocaleString() + "–$" + CONFIG.MAX_LIQUIDITY_USD.toLocaleString() + ")"
+    val:
+      "$" +
+      Math.round(dex.liq).toLocaleString() +
+      " (need $" +
+      CONFIG.MIN_LIQUIDITY_USD.toLocaleString() +
+      "–$" +
+      CONFIG.MAX_LIQUIDITY_USD.toLocaleString() +
+      ")",
   };
 
   const volPass = dex.vol24h >= CONFIG.MIN_VOLUME_USD;
@@ -825,17 +1012,18 @@ async function runFilters(mint, dex) {
   checks.vol = {
     pass: volPass,
     label: "Volume 24h",
-    val: "$" + Math.round(dex.vol24h).toLocaleString()
+    val: "$" + Math.round(dex.vol24h).toLocaleString(),
   };
 
   const volRatio = dex.mcap > 0 ? dex.vol24h / dex.mcap : 0;
-  const minRatio = ageSec <= 30 ? 0.05 : ageSec <= 120 ? 0.15 : ageSec <= 600 ? 0.3 : 0.8;
+  const minRatio =
+    ageSec <= 30 ? 0.05 : ageSec <= 120 ? 0.15 : ageSec <= 600 ? 0.3 : 0.8;
   const ratioPass = volRatio >= minRatio;
   if (ratioPass) score++;
   checks.volRatio = {
     pass: ratioPass,
     label: "Vol/MCap",
-    val: volRatio.toFixed(3) + "x (need " + minRatio + "x @ " + fmtAge(dex.ageMin) + ")"
+    val: volRatio.toFixed(3) + "x (need " + minRatio + "x @ " + fmtAge(dex.ageMin) + ")",
   };
 
   const agePass = dex.ageHours <= CONFIG.MAX_AGE_HOURS;
@@ -843,10 +1031,11 @@ async function runFilters(mint, dex) {
   checks.age = {
     pass: agePass,
     label: "Age",
-    val: fmtAge(dex.ageMin)
+    val: fmtAge(dex.ageMin),
   };
 
-  const maxTop10Pct = ageSec <= 30 ? 50 : ageSec <= 120 ? 45 : ageSec <= 600 ? 40 : 20;
+  const maxTop10Pct =
+    ageSec <= 30 ? 50 : ageSec <= 120 ? 45 : ageSec <= 600 ? 40 : 20;
 
   const holderResults = await Promise.all([
     getCachedHolders(mint),
@@ -863,12 +1052,17 @@ async function runFilters(mint, dex) {
       checks.lp = {
         pass: false,
         label: "LP/holder",
-        val: "n/a — only " + hCount + " holders (need " + CONFIG.MIN_HOLDERS + "+)"
+        val:
+          "n/a — only " +
+          hCount +
+          " holders (need " +
+          CONFIG.MIN_HOLDERS +
+          "+)",
       };
       checks.top10 = {
         pass: false,
         label: "Top10 %",
-        val: "n/a — holder count too low"
+        val: "n/a — holder count too low",
       };
       return { pass: false, score, total: 7, checks, isCluster: false };
     }
@@ -884,12 +1078,25 @@ async function runFilters(mint, dex) {
     checks.lp = {
       pass: lpPass,
       label: "LP/holder",
-      val: "$" + lpPerH.toFixed(2) + " / " + hCount + " holders (need $" + CONFIG.MIN_LP_PER_HOLDER + "+)"
+      val:
+        "$" +
+        lpPerH.toFixed(2) +
+        " / " +
+        hCount +
+        " holders (need $" +
+        CONFIG.MIN_LP_PER_HOLDER +
+        "+)",
     };
     checks.top10 = {
       pass: topPass,
       label: "Top10 %",
-      val: top10.toFixed(1) + "% (need <" + maxTop10Pct + "% @ " + fmtAge(dex.ageMin) + ")"
+      val:
+        top10.toFixed(1) +
+        "% (need <" +
+        maxTop10Pct +
+        "% @ " +
+        fmtAge(dex.ageMin) +
+        ")",
     };
 
     let isCluster = false;
@@ -902,7 +1109,7 @@ async function runFilters(mint, dex) {
         checks.cluster = {
           pass: true,
           label: "CLUSTER",
-          val: uniform.length + " wallets ~" + avg.toFixed(2) + "% — fast exit"
+          val: uniform.length + " wallets ~" + avg.toFixed(2) + "% — fast exit",
         };
       }
     }
@@ -913,12 +1120,12 @@ async function runFilters(mint, dex) {
   checks.lp = {
     pass: false,
     label: "LP/holder",
-    val: "n/a — holder data unavailable"
+    val: "n/a — holder data unavailable",
   };
   checks.top10 = {
     pass: false,
     label: "Top10 %",
-    val: "n/a — holder data unavailable"
+    val: "n/a — holder data unavailable",
   };
 
   return { pass: false, score, total: 7, checks, isCluster: false };
@@ -929,32 +1136,184 @@ async function runFilters(mint, dex) {
 // ==========================================
 function checkWashTrading(dex) {
   if (!dex.vol5m || dex.vol5m < CONFIG.WASH_VOL_THRESHOLD) return { wash: false };
+
   const buys5m = dex.buys5m || 0;
 
   if (buys5m === 0) {
     return {
       wash: true,
-      reason: "$" + Math.round(dex.vol5m) + " vol5m but 0 buy txns — wash trading"
+      reason: "$" + Math.round(dex.vol5m) + " vol5m but 0 buy txns — wash trading",
     };
   }
 
   if (buys5m < CONFIG.WASH_MIN_UNIQUE_BUYS) {
     return {
       wash: true,
-      reason: "$" + Math.round(dex.vol5m) + " vol5m but only " + buys5m + " buy txns — likely wash"
+      reason:
+        "$" +
+        Math.round(dex.vol5m) +
+        " vol5m but only " +
+        buys5m +
+        " buy txns — likely wash",
     };
   }
 
   return { wash: false };
 }
 
+async function checkMintAuthority(mint) {
+  const cached = mintAuthCache.get(mint);
+  if (cached) return cached;
+
+  try {
+    const acct = await connection.getParsedAccountInfo(new PublicKey(mint));
+    const parsed =
+      acct &&
+      acct.value &&
+      acct.value.data &&
+      acct.value.data.parsed &&
+      acct.value.data.parsed.info;
+
+    if (!parsed) {
+      const out = {
+        safe: false,
+        transient: true,
+        reason: "mint account not readable",
+      };
+      mintAuthCache.set(mint, out);
+      return out;
+    }
+
+    if (parsed.mintAuthority) {
+      const out = { safe: false, reason: "mint authority still active" };
+      mintAuthCache.set(mint, out);
+      return out;
+    }
+
+    if (parsed.freezeAuthority) {
+      const out = { safe: false, reason: "freeze authority still active" };
+      mintAuthCache.set(mint, out);
+      return out;
+    }
+
+    const out = { safe: true };
+    mintAuthCache.set(mint, out);
+    return out;
+  } catch (e) {
+    const out = {
+      safe: false,
+      transient: true,
+      reason: "authority check failed — " + (e.message || "").slice(0, 60),
+    };
+    mintAuthCache.set(mint, out);
+    return out;
+  }
+}
+
+async function checkSellViable(mint, tokenAmount) {
+  try {
+    const sellQuote = await axios.get(
+      "https://api.jup.ag/swap/v1/quote" +
+        "?inputMint=" +
+        mint +
+        "&outputMint=" +
+        CONFIG.WSOL +
+        "&amount=" +
+        tokenAmount +
+        "&slippageBps=500",
+      { headers: JUP_HEADERS, timeout: 3000 }
+    );
+
+    if (!sellQuote.data || !sellQuote.data.outAmount) {
+      return { viable: false, reason: "No sell route found" };
+    }
+
+    const impact = parseFloat(sellQuote.data.priceImpactPct || 0);
+    if (impact > CONFIG.HONEYPOT_MAX_IMPACT_PCT) {
+      return { viable: false, reason: "Sell impact " + impact.toFixed(1) + "% too high" };
+    }
+
+    return { viable: true, impact };
+  } catch (e) {
+    return { viable: true, reason: "check timed out — proceeding" };
+  }
+}
+
+async function checkHoneypot(mint) {
+  try {
+    const testLam = Math.floor(CONFIG.BUY_AMOUNT_SOL * LAMPORTS_PER_SOL * 0.1);
+
+    const buyQuote = await axios.get(
+      "https://api.jup.ag/swap/v1/quote" +
+        "?inputMint=" +
+        CONFIG.WSOL +
+        "&outputMint=" +
+        mint +
+        "&amount=" +
+        testLam +
+        "&slippageBps=500",
+      { headers: JUP_HEADERS, timeout: 8000 }
+    );
+
+    if (!buyQuote.data || !buyQuote.data.outAmount) {
+      console.log("   🍯 Honeypot: no buy quote — skipping");
+      return { safe: false, reason: "No buy route found" };
+    }
+
+    const tokenAmount = buyQuote.data.outAmount;
+
+    const sellQuote = await axios.get(
+      "https://api.jup.ag/swap/v1/quote" +
+        "?inputMint=" +
+        mint +
+        "&outputMint=" +
+        CONFIG.WSOL +
+        "&amount=" +
+        tokenAmount +
+        "&slippageBps=500",
+      { headers: JUP_HEADERS, timeout: 8000 }
+    );
+
+    if (!sellQuote.data || !sellQuote.data.outAmount) {
+      console.log("   🍯 Honeypot: no sell route — BLOCKED");
+      return { safe: false, reason: "No sell route — likely honeypot" };
+    }
+
+    const impact = parseFloat(sellQuote.data.priceImpactPct || 0);
+    if (impact > CONFIG.HONEYPOT_MAX_IMPACT_PCT) {
+      console.log(
+        "   🍯 Honeypot: sell impact " +
+          impact.toFixed(1) +
+          "% > " +
+          CONFIG.HONEYPOT_MAX_IMPACT_PCT +
+          "% — BLOCKED"
+      );
+      return { safe: false, reason: "Sell impact " + impact.toFixed(1) + "% — no exit liquidity" };
+    }
+
+    console.log("   ✅ Honeypot check passed — sell impact " + impact.toFixed(1) + "%");
+    return { safe: true, impact };
+  } catch (e) {
+    console.log("   ⚠️ Honeypot check failed (blocking):", (e.message || "").slice(0, 80));
+    return { safe: false, transient: true, reason: "honeypot check failed — blocked for safety" };
+  }
+}
+
 async function checkBundle(mint) {
-  if (CONFIG.BUNDLE_MAX_SCORE === 0) return { bundled: false, score: 0, reason: "disabled" };
+  if (CONFIG.BUNDLE_MAX_SCORE === 0) {
+    return { bundled: false, score: 0, reason: "disabled" };
+  }
 
   try {
     const mintPk = new PublicKey(mint);
-    const sigs = await connection.getSignaturesForAddress(mintPk, { limit: CONFIG.BUNDLE_TX_LIMIT }, "confirmed");
-    if (!sigs || sigs.length === 0) return { bundled: false, score: 0, reason: "no txs" };
+    const sigs = await connection.getSignaturesForAddress(
+      mintPk,
+      { limit: CONFIG.BUNDLE_TX_LIMIT },
+      "confirmed"
+    );
+    if (!sigs || sigs.length === 0) {
+      return { bundled: false, score: 0, reason: "no txs" };
+    }
 
     const migPkStr = migrationPk.toBase58();
     const walletBuys = {};
@@ -969,7 +1328,9 @@ async function checkBundle(mint) {
 
         const slot = sigs[i].slot;
         const keys = tx.transaction.message.accountKeys || [];
-        const signers = keys.filter((k) => k.signer).map((k) => k.pubkey.toBase58());
+        const signers = keys
+          .filter((k) => k.signer)
+          .map((k) => k.pubkey.toBase58());
         if (signers.includes(migPkStr)) continue;
 
         const preBalances = tx.meta.preBalances || [];
@@ -993,7 +1354,9 @@ async function checkBundle(mint) {
     }
 
     const buyers = Object.keys(walletBuys);
-    if (buyers.length < 2) return { bundled: false, score: 0, reason: "not enough buyers" };
+    if (buyers.length < 2) {
+      return { bundled: false, score: 0, reason: "not enough buyers" };
+    }
 
     let bundleScore = 0;
     const bundleReasons = [];
@@ -1015,7 +1378,9 @@ async function checkBundle(mint) {
 
       const sizes = maxSlotGroup.map((w) => walletBuys[w].solSpent);
       const avgSize = sizes.reduce((a, b) => a + b, 0) / sizes.length;
-      const allClose = sizes.every((s) => Math.abs(s - avgSize) / avgSize * 100 <= CONFIG.BUNDLE_SIZE_DIFF_PCT);
+      const allClose = sizes.every(
+        (s) => (Math.abs(s - avgSize) / avgSize) * 100 <= CONFIG.BUNDLE_SIZE_DIFF_PCT
+      );
 
       if (allClose && sizes.length >= 3) {
         bundleScore++;
@@ -1028,7 +1393,7 @@ async function checkBundle(mint) {
     preBals.forEach((b) => {
       balFreq[b] = (balFreq[b] || 0) + 1;
     });
-    const maxFreq = Math.max.apply(null, Object.values(balFreq));
+    const maxFreq = Math.max(...Object.values(balFreq));
     if (maxFreq >= 3) {
       bundleScore++;
       bundleReasons.push(maxFreq + " wallets with identical spend amounts");
@@ -1039,116 +1404,11 @@ async function checkBundle(mint) {
     console.log("   🔎 Bundle check: score=" + bundleScore + " | " + reason);
     return { bundled, score: bundleScore, reason };
   } catch (e) {
-    console.log("   ⚠️ Bundle check error (allowing through):", (e.message || "").slice(0, 80));
+    console.log(
+      "   ⚠️ Bundle check error (allowing through):",
+      (e.message || "").slice(0, 80)
+    );
     return { bundled: false, score: 0, reason: "check failed — allowed" };
-  }
-}
-
-async function checkMintAuthority(mint) {
-  const cached = mintAuthCache.get(mint);
-  if (cached) return cached;
-
-  try {
-    const acct = await connection.getParsedAccountInfo(new PublicKey(mint));
-    const parsed = acct && acct.value && acct.value.data && acct.value.data.parsed && acct.value.data.parsed.info;
-    if (!parsed) {
-      const out = { safe: false, transient: true, reason: "mint account not readable" };
-      mintAuthCache.set(mint, out);
-      return out;
-    }
-
-    if (parsed.mintAuthority) {
-      const out = { safe: false, reason: "mint authority still active" };
-      mintAuthCache.set(mint, out);
-      return out;
-    }
-
-    if (parsed.freezeAuthority) {
-      const out = { safe: false, reason: "freeze authority still active" };
-      mintAuthCache.set(mint, out);
-      return out;
-    }
-
-    const out = { safe: true };
-    mintAuthCache.set(mint, out);
-    return out;
-  } catch (e) {
-    const out = { safe: false, transient: true, reason: "authority check failed — " + (e.message || "").slice(0, 60) };
-    mintAuthCache.set(mint, out);
-    return out;
-  }
-}
-
-async function checkSellViable(mint, tokenAmount) {
-  try {
-    const sellQuote = await axios.get(
-      "https://api.jup.ag/swap/v1/quote" +
-      "?inputMint=" + mint +
-      "&outputMint=" + CONFIG.WSOL +
-      "&amount=" + tokenAmount +
-      "&slippageBps=500",
-      { headers: JUP_HEADERS, timeout: 3000 }
-    );
-
-    if (!sellQuote.data || !sellQuote.data.outAmount) {
-      return { viable: false, reason: "No sell route found" };
-    }
-
-    const impact = parseFloat(sellQuote.data.priceImpactPct || 0);
-    if (impact > CONFIG.HONEYPOT_MAX_IMPACT_PCT) {
-      return { viable: false, reason: "Sell impact " + impact.toFixed(1) + "% too high" };
-    }
-    return { viable: true, impact };
-  } catch (e) {
-    return { viable: true, reason: "check timed out — proceeding" };
-  }
-}
-
-async function checkHoneypot(mint) {
-  try {
-    const testLam = Math.floor(CONFIG.BUY_AMOUNT_SOL * LAMPORTS_PER_SOL * 0.1);
-
-    const buyQuote = await axios.get(
-      "https://api.jup.ag/swap/v1/quote" +
-      "?inputMint=" + CONFIG.WSOL +
-      "&outputMint=" + mint +
-      "&amount=" + testLam +
-      "&slippageBps=500",
-      { headers: JUP_HEADERS, timeout: 8000 }
-    );
-
-    if (!buyQuote.data || !buyQuote.data.outAmount) {
-      console.log("   🍯 Honeypot: no buy quote — skipping");
-      return { safe: false, reason: "No buy route found" };
-    }
-
-    const tokenAmount = buyQuote.data.outAmount;
-
-    const sellQuote = await axios.get(
-      "https://api.jup.ag/swap/v1/quote" +
-      "?inputMint=" + mint +
-      "&outputMint=" + CONFIG.WSOL +
-      "&amount=" + tokenAmount +
-      "&slippageBps=500",
-      { headers: JUP_HEADERS, timeout: 8000 }
-    );
-
-    if (!sellQuote.data || !sellQuote.data.outAmount) {
-      console.log("   🍯 Honeypot: no sell route — BLOCKED");
-      return { safe: false, reason: "No sell route — likely honeypot" };
-    }
-
-    const impact = parseFloat(sellQuote.data.priceImpactPct || 0);
-    if (impact > CONFIG.HONEYPOT_MAX_IMPACT_PCT) {
-      console.log("   🍯 Honeypot: sell impact " + impact.toFixed(1) + "% > " + CONFIG.HONEYPOT_MAX_IMPACT_PCT + "% — BLOCKED");
-      return { safe: false, reason: "Sell impact " + impact.toFixed(1) + "% — no exit liquidity" };
-    }
-
-    console.log("   ✅ Honeypot check passed — sell impact " + impact.toFixed(1) + "%");
-    return { safe: true, impact };
-  } catch (e) {
-    console.log("   ⚠️ Honeypot check failed (blocking):", (e.message || "").slice(0, 80));
-    return { safe: false, transient: true, reason: "honeypot check failed — blocked for safety" };
   }
 }
 
@@ -1247,7 +1507,12 @@ async function checkBondingHistory(mint) {
       PUMP_PROG_PK
     );
 
-    const sigs = await connection.getSignaturesForAddress(curvePk, { limit: CONFIG.BONDING_SIG_LIMIT }, "confirmed");
+    const sigs = await connection.getSignaturesForAddress(
+      curvePk,
+      { limit: CONFIG.BONDING_SIG_LIMIT },
+      "confirmed"
+    );
+
     if (!sigs || sigs.length === 0) {
       return { rug: false, score: 0, reason: "no curve history — allowed" };
     }
@@ -1290,6 +1555,7 @@ async function checkBondingHistory(mint) {
       });
 
       const solDelta = ((tx.meta.postBalances[0] || 0) - (tx.meta.preBalances[0] || 0)) / 1e9;
+
       events.push({
         sig: picked[i].signature,
         slot: picked[i].slot,
@@ -1333,6 +1599,7 @@ async function checkBondingHistory(mint) {
 
     const buySol = {};
     let totalBuySol = 0;
+
     events.forEach((e) => {
       if (e.tokDelta > 0 && e.solSpent > 0.001) {
         buySol[e.signer] = (buySol[e.signer] || 0) + e.solSpent;
@@ -1342,7 +1609,9 @@ async function checkBondingHistory(mint) {
 
     const buyerList = Object.keys(buySol);
     if (buyerList.length > 0 && totalBuySol > 0) {
-      const topWallet = buyerList.reduce((a, b) => buySol[b] > buySol[a] ? b : a, buyerList[0]);
+      const topWallet = buyerList.reduce((a, b) => {
+        return buySol[b] > buySol[a] ? b : a;
+      }, buyerList[0]);
       const topPct = (buySol[topWallet] / totalBuySol) * 100;
       if (topPct >= CONFIG.BONDING_TOP_BUYER_PCT) {
         score++;
@@ -1354,7 +1623,9 @@ async function checkBondingHistory(mint) {
       const firstSlot = oldest[0].slot;
       const earlyBuyers = new Set();
       events.forEach((e) => {
-        if (e.slot <= firstSlot + 1 && e.tokDelta > 0 && e.signer !== creator) earlyBuyers.add(e.signer);
+        if (e.slot <= firstSlot + 1 && e.tokDelta > 0 && e.signer !== creator) {
+          earlyBuyers.add(e.signer);
+        }
       });
       if (earlyBuyers.size >= CONFIG.BONDING_EARLY_SLOT_BUYERS) {
         score++;
@@ -1375,22 +1646,29 @@ async function checkBondingHistory(mint) {
     console.log("   🧬 Bonding history:", out);
     return out;
   } catch (e) {
-    console.log("   ⚠️ Bonding history check error (allowing through):", (e.message || "").slice(0, 80));
+    console.log(
+      "   ⚠️ Bonding history check error (allowing through):",
+      (e.message || "").slice(0, 80)
+    );
     return { rug: false, score: 0, reason: "check failed — allowed" };
   }
 }
 
 // ==========================================
-// BUY / SELL
+// BUY/SELL
 // ==========================================
 const buyQueue = new Map();
 
 async function queueBuyRequest(mint, dex, result, source, overrideSol, precomputedBundle) {
   const current = getMintState(mint);
 
-  if (current.state === "buying" || current.state === "bought" ||
-      current.state === "selling" || current.state === "sold" ||
-      current.state === "blocked") {
+  if (
+    current.state === "buying" ||
+    current.state === "bought" ||
+    current.state === "selling" ||
+    current.state === "sold" ||
+    current.state === "blocked"
+  ) {
     console.log("   ⛔ [" + mint.slice(0, 8) + "] queueBuyRequest ignored — state: " + current.state);
     return;
   }
@@ -1400,8 +1678,17 @@ async function queueBuyRequest(mint, dex, result, source, overrideSol, precomput
     return;
   }
 
-  buyQueue.set(mint, { dex, result, source: source || "unknown", overrideSol, bundle: precomputedBundle });
-  setMintState(mint, "queued", { source: source || "unknown", score: result && result.score });
+  buyQueue.set(mint, {
+    dex,
+    result,
+    source: source || "unknown",
+    overrideSol,
+    bundle: precomputedBundle,
+  });
+  setMintState(mint, "queued", {
+    source: source || "unknown",
+    score: result && result.score,
+  });
   console.log("   📥 [" + mint.slice(0, 8) + "] Queued for buy — source:", source || "unknown");
 
   try {
@@ -1409,7 +1696,9 @@ async function queueBuyRequest(mint, dex, result, source, overrideSol, precomput
     await executeBuy(mint, dex, result, overrideSol, precomputedBundle, source);
   } catch (e) {
     console.error("   ❌ queueBuyRequest error [" + mint.slice(0, 8) + "]:", e.message);
-    setMintState(mint, "blocked", { reason: "buy queue error: " + e.message.slice(0, 60) });
+    setMintState(mint, "blocked", {
+      reason: "buy queue error: " + (e.message || "").slice(0, 60),
+    });
   }
 }
 
@@ -1423,26 +1712,56 @@ function recordTrade(symbol, mint, solSpent, solReceived, reason, tiers) {
   const win = pnl > 0;
 
   pnlTrades.push({
-    symbol, mint, solSpent, solReceived, pnl, pnlPct, reason, tiers,
-    time: Date.now(), win,
+    symbol,
+    mint,
+    solSpent,
+    solReceived,
+    pnl,
+    pnlPct,
+    reason,
+    tiers,
+    time: Date.now(),
+    win,
   });
 
-  try { brain.recordTrade(symbol, pnl, win, reason, tiers); } catch (e) {}
+  try {
+    brain.recordTrade(symbol, pnl, win, reason, tiers);
+  } catch (e) {}
 
   const emoji = win ? "🟢" : "🔴";
   const sign = pnl >= 0 ? "+" : "";
   const tiersHit = tiers.length ? tiers.join(" → ") : "none";
+
   tg(
-    emoji + " *Trade Closed — " + symbol + "*\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "📥 Spent: *" + solSpent.toFixed(4) + " SOL*\n" +
-    "📤 Received: *" + solReceived.toFixed(4) + " SOL*\n" +
-    "💰 PnL: *" + sign + pnl.toFixed(4) + " SOL* (" + sign + pnlPct.toFixed(1) + "%)\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "🎯 Tiers hit: " + tiersHit + "\n" +
-    "🚪 Exit: " + reason + "\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "Mint: `" + mint + "`"
+    emoji +
+      " *Trade Closed — " +
+      symbol +
+      "*\n" +
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      "📥 Spent: *" +
+      solSpent.toFixed(4) +
+      " SOL*\n" +
+      "📤 Received: *" +
+      solReceived.toFixed(4) +
+      " SOL*\n" +
+      "💰 PnL: *" +
+      sign +
+      pnl.toFixed(4) +
+      " SOL* (" +
+      sign +
+      pnlPct.toFixed(1) +
+      "%)\n" +
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      "🎯 Tiers hit: " +
+      tiersHit +
+      "\n" +
+      "🚪 Exit: " +
+      reason +
+      "\n" +
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      "Mint: `" +
+      mint +
+      "`"
   );
 }
 
@@ -1459,32 +1778,73 @@ function sendSessionSummary() {
   const totalRec = pnlTrades.reduce((a, t) => a + t.solReceived, 0);
   const totalPnl = totalRec - totalSpent;
   const winRate = ((wins / totalTrades) * 100).toFixed(0);
-  const bestTrade = pnlTrades.reduce((a, t) => t.pnl > a.pnl ? t : a, pnlTrades[0]);
-  const worstTrade = pnlTrades.reduce((a, t) => t.pnl < a.pnl ? t : a, pnlTrades[0]);
+  const bestTrade = pnlTrades.reduce((a, t) => (t.pnl > a.pnl ? t : a), pnlTrades[0]);
+  const worstTrade = pnlTrades.reduce((a, t) => (t.pnl < a.pnl ? t : a), pnlTrades[0]);
   const sign = totalPnl >= 0 ? "+" : "";
   const emoji = totalPnl >= 0 ? "🟢" : "🔴";
   const elapsed = Math.round((Date.now() - sessionStart) / 3600000 * 10) / 10;
 
-  const tradeLines = pnlTrades.slice(-10).map((t) => {
-    const s = t.pnl >= 0 ? "+" : "";
-    return (t.win ? "🟢" : "🔴") + " " + t.symbol + " " + s + t.pnl.toFixed(4) + " SOL (" + s + t.pnlPct.toFixed(0) + "%)";
-  }).join("\n");
+  const tradeLines = pnlTrades
+    .slice(-10)
+    .map((t) => {
+      const s = t.pnl >= 0 ? "+" : "";
+      return (
+        (t.win ? "🟢" : "🔴") +
+        " " +
+        t.symbol +
+        " " +
+        s +
+        t.pnl.toFixed(4) +
+        " SOL (" +
+        s +
+        t.pnlPct.toFixed(0) +
+        "%)"
+      );
+    })
+    .join("\n");
 
   tg(
     "📊 *3hr Session Report*\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    emoji + " *Net PnL: " + sign + totalPnl.toFixed(4) + " SOL*\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "📈 Trades: " + totalTrades + " (" + wins + "W / " + losses + "L)\n" +
-    "🎯 Win rate: " + winRate + "%\n" +
-    "📥 Spent: " + totalSpent.toFixed(4) + " SOL\n" +
-    "📤 Received: " + totalRec.toFixed(4) + " SOL\n" +
-    "⏱ Runtime: " + elapsed + "hrs\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "🏆 Best: " + bestTrade.symbol + " +" + bestTrade.pnl.toFixed(4) + " SOL\n" +
-    "💀 Worst: " + worstTrade.symbol + " " + worstTrade.pnl.toFixed(4) + " SOL\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "*Recent trades:*\n" + tradeLines
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      emoji +
+      " *Net PnL: " +
+      sign +
+      totalPnl.toFixed(4) +
+      " SOL*\n" +
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      "📈 Trades: " +
+      totalTrades +
+      " (" +
+      wins +
+      "W / " +
+      losses +
+      "L)\n" +
+      "🎯 Win rate: " +
+      winRate +
+      "%\n" +
+      "📥 Spent: " +
+      totalSpent.toFixed(4) +
+      " SOL\n" +
+      "📤 Received: " +
+      totalRec.toFixed(4) +
+      " SOL\n" +
+      "⏱ Runtime: " +
+      elapsed +
+      "hrs\n" +
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      "🏆 Best: " +
+      bestTrade.symbol +
+      " +" +
+      bestTrade.pnl.toFixed(4) +
+      " SOL\n" +
+      "💀 Worst: " +
+      worstTrade.symbol +
+      " " +
+      worstTrade.pnl.toFixed(4) +
+      " SOL\n" +
+      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+      "*Recent trades:*\n" +
+      tradeLines
   );
 
   pnlTrades = [];
@@ -1494,10 +1854,14 @@ function sendSessionSummary() {
 async function jupiterSwap(inputMint, outputMint, amount, slippageBps = 500) {
   const res = await axios.get(
     "https://api.jup.ag/swap/v1/quote" +
-    "?inputMint=" + inputMint +
-    "&outputMint=" + outputMint +
-    "&amount=" + amount +
-    "&slippageBps=" + slippageBps,
+      "?inputMint=" +
+      inputMint +
+      "&outputMint=" +
+      outputMint +
+      "&amount=" +
+      amount +
+      "&slippageBps=" +
+      slippageBps,
     { headers: JUP_HEADERS, timeout: 15000 }
   );
 
@@ -1506,8 +1870,7 @@ async function jupiterSwap(inputMint, outputMint, amount, slippageBps = 500) {
   }
 
   const txBuf = Buffer.from(res.data.swapTransaction, "base64");
-  const tx = Transaction.from(txBuf);
-  return tx;
+  return Transaction.from(txBuf);
 }
 
 async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, source) {
@@ -1517,7 +1880,10 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
   }
 
   buying.add(mint);
-  setMintState(mint, "buying", { source: source || "unknown", score: result && result.score });
+  setMintState(mint, "buying", {
+    source: source || "unknown",
+    score: result && result.score,
+  });
 
   const buySol = overrideSol || CONFIG.BUY_AMOUNT_SOL;
 
@@ -1533,7 +1899,9 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
     return;
   }
 
-  const activeMints = Object.keys(positions).filter((m) => positions[m] && positions[m].symbol);
+  const activeMints = Object.keys(positions).filter(
+    (m) => positions[m] && positions[m].symbol
+  );
   if (activeMints.length >= CONFIG.MAX_POSITIONS) {
     for (let i = 0; i < activeMints.length; i++) {
       const pm = activeMints[i];
@@ -1543,7 +1911,13 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
       const age = Date.now() - pos.entryTime;
       if (!pos.tier1 && age >= CONFIG.PRE_BUY_STALL_MS) {
         console.log("   🔄 Selling stalled position " + pos.symbol + " to make room");
-        tg("🔄 *Selling stalled position* — *" + pos.symbol + "*\nHeld " + Math.round(age / 1000) + "s, no T1 yet — freeing slot");
+        tg(
+          "🔄 *Selling stalled position* — *" +
+            pos.symbol +
+            "*\nHeld " +
+            Math.round(age / 1000) +
+            "s, no T1 yet — freeing slot"
+        );
         await executeSell(pm, 100, "Stalled — freeing slot");
         delete positions[pm];
         break;
@@ -1560,7 +1934,17 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
   const washResult = checkWashTrading(dex);
   if (washResult.wash) {
     console.log("   🚿 Wash trading detected — " + washResult.reason);
-    tg("🚿 *Wash trading — skipped*\n*" + dex.name + " (" + dex.symbol + ")*\n" + washResult.reason + "\nMint: `" + mint + "`");
+    tg(
+      "🚿 *Wash trading — skipped*\n*" +
+        dex.name +
+        " (" +
+        dex.symbol +
+        ")*\n" +
+        washResult.reason +
+        "\nMint: `" +
+        mint +
+        "`"
+    );
     setMintState(mint, "blocked", { reason: "wash: " + washResult.reason });
     buying.delete(mint);
     return;
@@ -1569,7 +1953,17 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
   const authority = await checkMintAuthority(mint);
   if (!authority.safe) {
     console.log("   🔒 Authority blocked — " + authority.reason);
-    tg("🔒 *Authority check — skipped*\n*" + dex.name + " (" + dex.symbol + ")*\n" + authority.reason + "\nMint: `" + mint + "`");
+    tg(
+      "🔒 *Authority check — skipped*\n*" +
+        dex.name +
+        " (" +
+        dex.symbol +
+        ")*\n" +
+        authority.reason +
+        "\nMint: `" +
+        mint +
+        "`"
+    );
     if (!authority.transient) failedMints.add(mint);
     setMintState(mint, "blocked", { reason: "authority: " + authority.reason });
     buying.delete(mint);
@@ -1579,24 +1973,46 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
   const honeypot = await checkHoneypot(mint);
   if (!honeypot.safe) {
     console.log("   🍯 Honeypot blocked — " + honeypot.reason);
-    tg("🍯 *Honeypot detected — skipped*\n*" + dex.name + " (" + dex.symbol + ")*\n" + honeypot.reason + "\nMint: `" + mint + "`");
+    tg(
+      "🍯 *Honeypot detected — skipped*\n*" +
+        dex.name +
+        " (" +
+        dex.symbol +
+        ")*\n" +
+        honeypot.reason +
+        "\nMint: `" +
+        mint +
+        "`"
+    );
     if (!honeypot.transient) failedMints.add(mint);
     setMintState(mint, "blocked", { reason: "honeypot: " + honeypot.reason });
     buying.delete(mint);
     return;
   }
 
-  const bundle = precomputedBundle || await checkBundle(mint);
+  const bundle = precomputedBundle || (await checkBundle(mint));
   if (bundle.bundled) {
     console.log("   🎯 Bundle blocked — " + bundle.reason);
     tg(
       "🎯 *Bundle detected — skipped*\n" +
-      "*" + dex.name + " (" + dex.symbol + ")*\n" +
-      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-      "🔎 Score: " + bundle.score + "/" + CONFIG.BUNDLE_MAX_SCORE + "\n" +
-      "📋 Detail: " + bundle.reason + "\n" +
-      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-      "Mint: `" + mint + "`"
+        "*" +
+        dex.name +
+        " (" +
+        dex.symbol +
+        ")*\n" +
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+        "🔎 Score: " +
+        bundle.score +
+        "/" +
+        CONFIG.BUNDLE_MAX_SCORE +
+        "\n" +
+        "📋 Detail: " +
+        bundle.reason +
+        "\n" +
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+        "Mint: `" +
+        mint +
+        "`"
     );
     failedMints.add(mint);
     setMintState(mint, "blocked", { reason: "bundle: " + bundle.reason });
@@ -1609,11 +2025,27 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
   console.log("\n🚀 BUYING: " + dex.name + " (" + dex.symbol + ") age:" + ageStr);
 
   tgWithButtons(
-    "🟡 *#" + dex.symbol + "*  |  MC: *$" + Math.round(dex.mcap).toLocaleString() + "*  |  Score: *" + result.score + "/7*\n" +
-    "Liq: $" + Math.round(dex.liq).toLocaleString() + " | Vol: $" + Math.round(dex.vol24h).toLocaleString() + " | " + (dex.hasTwitter ? "🐦X" : "🚫NoX") + "\n" +
-    "⏳ Executing via Jito → Jupiter fallback...\n" +
-    "[📊 Chart](https://dexscreener.com/solana/" + mint + ") | [🐦 Birdeye](https://birdeye.so/token/" + mint + "?chain=solana)\n" +
-    mint,
+    "🟡 *#" +
+      dex.symbol +
+      "*  |  MC: *$" +
+      Math.round(dex.mcap).toLocaleString() +
+      "*  |  Score: *" +
+      result.score +
+      "/7*\n" +
+      "Liq: $" +
+      Math.round(dex.liq).toLocaleString() +
+      " | Vol: $" +
+      Math.round(dex.vol24h).toLocaleString() +
+      " | " +
+      (dex.hasTwitter ? "🐦X" : "🚫NoX") +
+      "\n" +
+      "⏳ Executing via Jito → Jupiter fallback...\n" +
+      "[📊 Chart](https://dexscreener.com/solana/" +
+      mint +
+      ") | [🐦 Birdeye](https://birdeye.so/token/" +
+      mint +
+      "?chain=solana)\n" +
+      mint,
     [[{ text: "🔄 Refresh", callback_data: "refresh:" + mint }]]
   );
 
@@ -1633,7 +2065,10 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
       console.log("   ⚠️ Jito failed (" + (jitoErr.message || "").slice(0, 60) + ") — falling back to Jupiter...");
       const tx = await jupiterSwap(CONFIG.WSOL, mint, solLam, 800);
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-      sig = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, preflightCommitment: "confirmed" });
+      sig = await connection.sendRawTransaction(tx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
       await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
       usedEngine = "Jupiter";
     }
@@ -1674,25 +2109,51 @@ async function executeBuy(mint, dex, result, overrideSol, precomputedBundle, sou
       }
     }, 1000);
 
-    setMintState(mint, "bought", { source: source || "unknown", engine: usedEngine, entryMcap: dex.mcap });
+    setMintState(mint, "bought", {
+      source: source || "unknown",
+      engine: usedEngine,
+      entryMcap: dex.mcap,
+    });
     tg(
-      "✅ *Buy Confirmed [" + usedEngine + "] — " + dex.name + " (" + dex.symbol + ")*\n" +
-      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-      "💰 Entry MCap: $" + Math.round(dex.mcap).toLocaleString() + "\n" +
-      "💸 Spent: " + buySol + " SOL\n" +
-      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-      "Mint: `" + mint + "`\n" +
-      "[View TX](" + link + ")"
+      "✅ *Buy Confirmed [" +
+        usedEngine +
+        "] — " +
+        dex.name +
+        " (" +
+        dex.symbol +
+        ")*\n" +
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+        "💰 Entry MCap: $" +
+        Math.round(dex.mcap).toLocaleString() +
+        "\n" +
+        "💸 Spent: " +
+        buySol +
+        " SOL\n" +
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+        "Mint: `" +
+        mint +
+        "`\n" +
+        "[View TX](" +
+        link +
+        ")"
     );
   } catch (err) {
     console.error("   ❌ Buy FAILED:", err.message);
-    tg("❌ *Buy FAILED*\n*" + dex.name + "*\nError: `" + (err.message || "").slice(0, 200) + "`");
+    tg(
+      "❌ *Buy FAILED*\n*" +
+        dex.name +
+        "*\nError: `" +
+        (err.message || "").slice(0, 200) +
+        "`"
+    );
     const errMsg = (err.message || "").toLowerCase();
     if (errMsg.includes("insufficient") || errMsg.includes("not enough")) {
       failedMints.add(mint);
       console.log("   🚫 Added to failedMints:", err.message.slice(0, 80));
     }
-    setMintState(mint, "blocked", { reason: "buy tx failed: " + (err.message || "").slice(0, 80) });
+    setMintState(mint, "blocked", {
+      reason: "buy tx failed: " + (err.message || "").slice(0, 80),
+    });
     delete positions[mint];
   } finally {
     buying.delete(mint);
@@ -1719,10 +2180,16 @@ async function executeSell(mint, pct, reason) {
   try {
     const mintPk = new PublicKey(mint);
     const tokenProgId = await getTokenProgramId(mintPk);
-    const userATA = getAssociatedTokenAddressSync(mintPk, wallet.publicKey, false, tokenProgId);
+    const userATA = getAssociatedTokenAddressSync(
+      mintPk,
+      wallet.publicKey,
+      false,
+      tokenProgId
+    );
     const info = await connection.getTokenAccountBalance(userATA);
     const balance = parseInt((info && info.value && info.value.amount) || "0");
     const tokens = Math.floor(balance * (pct / 100));
+
     if (tokens <= 0) {
       console.log("   ⚠️ No balance");
       delete positions[mint];
@@ -1730,20 +2197,25 @@ async function executeSell(mint, pct, reason) {
       return;
     }
 
-    checkSellViable(mint, tokens).then((v) => {
-      if (!v.viable) console.log("   ⚠️ [PreSell] " + pos.symbol + " — " + v.reason + " (selling anyway)");
-    }).catch(() => {});
+    checkSellViable(mint, tokens)
+      .then((v) => {
+        if (!v.viable) console.log("   ⚠️ [PreSell] " + pos.symbol + " — " + v.reason + " (selling anyway)");
+      })
+      .catch(() => {});
 
     let solBefore = 0;
     try {
-      solBefore = await connection.getBalance(wallet.publicKey, "confirmed") / LAMPORTS_PER_SOL;
+      solBefore = (await connection.getBalance(wallet.publicKey, "confirmed")) / LAMPORTS_PER_SOL;
     } catch (e) {
       console.log("   ⚠️ Could not read pre-sell balance:", e.message);
     }
 
     const tx = await jupiterSwap(mint, CONFIG.WSOL, tokens, 500);
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-    const sig = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, preflightCommitment: "confirmed" });
+    const sig = await connection.sendRawTransaction(tx.serialize(), {
+      skipPreflight: false,
+      preflightCommitment: "confirmed",
+    });
     await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
 
     const link = "https://solscan.io/tx/" + sig;
@@ -1751,7 +2223,7 @@ async function executeSell(mint, pct, reason) {
 
     let solReceived = 0;
     try {
-      const solAfter = await connection.getBalance(wallet.publicKey, "confirmed") / LAMPORTS_PER_SOL;
+      const solAfter = (await connection.getBalance(wallet.publicKey, "confirmed")) / LAMPORTS_PER_SOL;
       solReceived = solAfter - solBefore;
     } catch (e) {
       console.log("   ⚠️ Could not read post-sell balance:", e.message);
@@ -1775,13 +2247,19 @@ async function executeSell(mint, pct, reason) {
         try {
           const mintPk2 = new PublicKey(mint);
           const userATA2 = getAssociatedTokenAddressSync(mintPk2, wallet.publicKey);
-          const ix = createCloseAccountInstruction(userATA2, wallet.publicKey, wallet.publicKey);
+          const ix = createCloseAccountInstruction(
+            userATA2,
+            wallet.publicKey,
+            wallet.publicKey
+          );
           const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
           const txClose = new Transaction().add(ix);
           txClose.recentBlockhash = blockhash;
           txClose.feePayer = wallet.publicKey;
           txClose.sign(wallet);
-          const sig2 = await connection.sendRawTransaction(txClose.serialize(), { skipPreflight: true });
+          const sig2 = await connection.sendRawTransaction(txClose.serialize(), {
+            skipPreflight: true,
+          });
           await connection.confirmTransaction({ signature: sig2, blockhash, lastValidBlockHeight }, "confirmed");
           tg("♻️ Rent reclaimed — " + pos.symbol + " +0.0020 SOL");
         } catch (e) {
@@ -1790,11 +2268,29 @@ async function executeSell(mint, pct, reason) {
       }, 3000);
     }
 
-    tg("📤 *SELL — " + pos.symbol + "*\nMint: `" + mint + "`\n" +
-      pct + "% | " + reason + "\n[TX](" + link + ")");
+    tg(
+      "📤 *SELL — " +
+        pos.symbol +
+        "*\nMint: `" +
+        mint +
+        "`\n" +
+        pct +
+        "% | " +
+        reason +
+        "\n[TX](" +
+        link +
+        ")"
+    );
   } catch (err) {
     console.error("   ❌ Sell failed:", err.message);
-    tg("❌ *Sell FAILED — " + (pos && pos.symbol || mint.slice(0, 8)) + "*\nError: `" + (err.message || "").slice(0, 200) + "`");
+    tg(
+      "❌ *Sell FAILED — " +
+        (pos && pos.symbol) ||
+        mint.slice(0, 8) +
+          "*\nError: `" +
+          (err.message || "").slice(0, 200) +
+          "`"
+    );
   } finally {
     selling.delete(mint);
   }
@@ -1803,6 +2299,14 @@ async function executeSell(mint, pct, reason) {
 // ==========================================
 // MONITOR
 // ==========================================
+async function getTokenProgramId(mintPk) {
+  try {
+    const info = await connection.getAccountInfo(mintPk);
+    if (info && info.owner.equals(TOKEN_2022_PROGRAM_ID)) return TOKEN_2022_PROGRAM_ID;
+  } catch (e) {}
+  return TOKEN_PROGRAM_ID;
+}
+
 async function fetchOnChainPoolSol(mint) {
   try {
     const cached = poolSolCache.get(mint);
@@ -1854,6 +2358,7 @@ async function monitor() {
     for (let i = 0; i < mints.length; i++) {
       const mint = mints[i];
       if (!positions[mint]) continue;
+
       const pos = positions[mint];
 
       try {
@@ -1862,15 +2367,26 @@ async function monitor() {
           if (ghostAgeMs > 60000 && pos.solSpent > 0) {
             const ghostMintPk = new PublicKey(mint);
             const ghostProgId = await getTokenProgramId(ghostMintPk);
-            const ghostAta = getAssociatedTokenAddressSync(ghostMintPk, wallet.publicKey, false, ghostProgId);
-            const ghostBal = await connection.getTokenAccountBalance(ghostAta).catch(() => null);
-            const ghostRawBal = parseInt((ghostBal && ghostBal.value && ghostBal.value.amount) || "0");
+            const ghostAta = getAssociatedTokenAddressSync(
+              ghostMintPk,
+              wallet.publicKey,
+              false,
+              ghostProgId
+            );
+            const ghostBal = await connection
+              .getTokenAccountBalance(ghostAta)
+              .catch(() => null);
+            const ghostRawBal = parseInt(
+              (ghostBal && ghostBal.value && ghostBal.value.amount) || "0"
+            );
 
             if (ghostRawBal === 0 && pos.state !== "BUYING") {
               pos.ghostDetecting = true;
               console.log("   👻 Ghost position detected — " + pos.symbol + " — reading sell tx for PnL...");
               try {
-                const ghostSigs = await connection.getSignaturesForAddress(ghostAta, { limit: 5 }).catch(() => []);
+                const ghostSigs = await connection
+                  .getSignaturesForAddress(ghostAta, { limit: 5 })
+                  .catch(() => []);
                 let ghostSellSig = null;
                 for (let gs = 0; gs < ghostSigs.length; gs++) {
                   if (!ghostSigs[gs].err) {
@@ -1903,14 +2419,22 @@ async function monitor() {
       if (holdMs < 420000 && pos.buyPoolSol && pos.onChainTick % 3 === 0) {
         const onChainSol = await fetchOnChainPoolSol(mint);
         if (onChainSol !== null) {
-          const onChainGain = ((onChainSol - pos.buyPoolSol) / pos.buyPoolSol) * 100;
+          const onChainGain =
+            ((onChainSol - pos.buyPoolSol) / pos.buyPoolSol) * 100;
           mcap = pos.buyPrice * (1 + onChainGain / 100);
         }
       }
 
       const gain = pos.buyPrice > 0 ? ((mcap - pos.buyPrice) / pos.buyPrice) * 100 : 0;
       const gainStr = (gain >= 0 ? "+" : "") + gain.toFixed(1) + "%";
-      console.log(pos.symbol + " | " + gainStr + " | MCap $" + Math.round(mcap).toLocaleString() + (holdMs < 420000 ? " [onchain]" : ""));
+      console.log(
+        pos.symbol +
+          " | " +
+          gainStr +
+          " | MCap $" +
+          Math.round(mcap).toLocaleString() +
+          (holdMs < 420000 ? " [onchain]" : "")
+      );
 
       if (mcap !== pos.lastMcap) {
         pos.lastMcap = mcap;
@@ -1921,8 +2445,15 @@ async function monitor() {
 
       if (pos.lastLiq && dex.liq !== undefined && dex.liq !== null && dex.liq < pos.lastLiq) {
         const suddenDropPct = (pos.lastLiq - dex.liq) / pos.lastLiq;
-        if (suddenDropPct >= 0.40) {
-          await executeSell(mint, 100, "Sudden liquidity pull — dropped " + (suddenDropPct * 100).toFixed(0) + "% in one check, now " + gainStr);
+        if (suddenDropPct >= 0.4) {
+          await executeSell(
+            mint,
+            100,
+            "Sudden liquidity pull — dropped " +
+              (suddenDropPct * 100).toFixed(0) +
+              "% in one check, now " +
+              gainStr
+          );
           delete positions[mint];
           continue;
         }
@@ -1932,13 +2463,23 @@ async function monitor() {
 
       if (pos.entryLiq > 0 && dex.liq !== undefined && dex.liq !== null) {
         const liqPct = dex.liq / pos.entryLiq;
-        const liqDraining = liqPct < CONFIG.LIQUIDITY_DRAIN_PCT || dex.liq < CONFIG.LIQUIDITY_ABS_FLOOR;
+        const liqDraining =
+          liqPct < CONFIG.LIQUIDITY_DRAIN_PCT || dex.liq < CONFIG.LIQUIDITY_ABS_FLOOR;
+
         if (liqDraining) {
           if (!pos.liqDrainSince) pos.liqDrainSince = Date.now();
           if (Date.now() - pos.liqDrainSince >= CONFIG.LIQUIDITY_DRAIN_CONFIRM_MS) {
-            const liqReason = dex.liq < CONFIG.LIQUIDITY_ABS_FLOOR
-              ? "Liquidity drain — liq $" + Math.round(dex.liq).toLocaleString() + " below hard floor, now " + gainStr
-              : "Liquidity drain — liq fell to " + (liqPct * 100).toFixed(0) + "% of entry, now " + gainStr;
+            const liqReason =
+              dex.liq < CONFIG.LIQUIDITY_ABS_FLOOR
+                ? "Liquidity drain — liq $" +
+                  Math.round(dex.liq).toLocaleString() +
+                  " below hard floor, now " +
+                  gainStr
+                : "Liquidity drain — liq fell to " +
+                  (liqPct * 100).toFixed(0) +
+                  "% of entry, now " +
+                  gainStr;
+
             await executeSell(mint, 100, liqReason);
             delete positions[mint];
             continue;
@@ -1950,6 +2491,7 @@ async function monitor() {
 
       if (!pos.lastSellCheck || Date.now() - pos.lastSellCheck > 60000) {
         pos.lastSellCheck = Date.now();
+
         const washNow = checkWashTrading(dex);
         if (washNow.wash) {
           console.log("   ⚠️ [WashRecheck] " + pos.symbol + " now showing wash trading — exiting");
@@ -1961,14 +2503,27 @@ async function monitor() {
         try {
           const mintPkChk = new PublicKey(mint);
           const tokProgChk = await getTokenProgramId(mintPkChk);
-          const ataChk = getAssociatedTokenAddressSync(mintPkChk, wallet.publicKey, false, tokProgChk);
+          const ataChk = getAssociatedTokenAddressSync(
+            mintPkChk,
+            wallet.publicKey,
+            false,
+            tokProgChk
+          );
           const balChk = await connection.getTokenAccountBalance(ataChk);
-          const heldTokens = parseInt((balChk && balChk.value && balChk.value.amount) || "0");
+          const heldTokens = parseInt(
+            (balChk && balChk.value && balChk.value.amount) || "0"
+          );
 
           if (heldTokens > 0) {
             const sellCheck = await checkSellViable(mint, heldTokens);
             if (!sellCheck.viable) {
-              console.log("   ⚠️ [SellRouteRecheck] " + pos.symbol + " — " + sellCheck.reason + " — exiting now");
+              console.log(
+                "   ⚠️ [SellRouteRecheck] " +
+                  pos.symbol +
+                  " — " +
+                  sellCheck.reason +
+                  " — exiting now"
+              );
               await executeSell(mint, 100, "Sell route degraded: " + sellCheck.reason);
               delete positions[mint];
               continue;
@@ -1983,25 +2538,70 @@ async function monitor() {
         pos.mcapSnapshots.push({ mcap, ts: Date.now() });
       }
 
-      if (holdMs >= CONFIG.CONVICTION_TIME_MS && (pos.peakGain || 0) < CONFIG.CONVICTION_MIN_GAIN && !pos.convictionExited) {
+      if (
+        holdMs >= CONFIG.CONVICTION_TIME_MS &&
+        (pos.peakGain || 0) < CONFIG.CONVICTION_MIN_GAIN &&
+        !pos.convictionExited
+      ) {
         pos.convictionExited = true;
-        console.log("   ⏱ [Conviction] " + pos.symbol + " 10min no +" + CONFIG.CONVICTION_MIN_GAIN + "% — closing | peak +" + (pos.peakGain || 0).toFixed(1) + "% now " + gainStr);
-        await executeSell(mint, 100, "Conviction exit — 10min, peak +" + (pos.peakGain || 0).toFixed(1) + "%, now " + gainStr);
+        console.log(
+          "   ⏱ [Conviction] " +
+            pos.symbol +
+            " 10min no +" +
+            CONFIG.CONVICTION_MIN_GAIN +
+            "% — closing | peak +" +
+            (pos.peakGain || 0).toFixed(1) +
+            "% now " +
+            gainStr
+        );
+        await executeSell(
+          mint,
+          100,
+          "Conviction exit — 10min, peak +" +
+            (pos.peakGain || 0).toFixed(1) +
+            "%, now " +
+            gainStr
+        );
         delete positions[mint];
         continue;
       }
 
       if (!pos.lockedFloor) {
         if (holdMs >= 8 * 60 * 1000 && (pos.peakGain || 0) < CONFIG.SLIDING_STOP_8MIN) {
-          console.log("   ⏱ [Sliding] " + pos.symbol + " 8min no +" + CONFIG.SLIDING_STOP_8MIN + "% — closing | " + gainStr);
-          await executeSell(mint, 100, "Sliding exit — 8min, peak +" + (pos.peakGain || 0).toFixed(1) + "%");
+          console.log(
+            "   ⏱ [Sliding] " +
+              pos.symbol +
+              " 8min no +" +
+              CONFIG.SLIDING_STOP_8MIN +
+              "% — closing | " +
+              gainStr
+          );
+          await executeSell(
+            mint,
+            100,
+            "Sliding exit — 8min, peak +" + (pos.peakGain || 0).toFixed(1) + "%"
+          );
           delete positions[mint];
           continue;
         }
 
-        if (holdMs >= 3 * 60 * 1000 && (pos.peakGain || 0) < 20 && gain <= CONFIG.SLIDING_STOP_3MIN) {
-          console.log("   ⏱ [Sliding] " + pos.symbol + " 3min no +20%, now " + gainStr + " — tightened stop");
-          await executeSell(mint, 100, "Sliding stop — 3min, peak +" + (pos.peakGain || 0).toFixed(1) + "%, now " + gainStr);
+        if (
+          holdMs >= 3 * 60 * 1000 &&
+          (pos.peakGain || 0) < 20 &&
+          gain <= CONFIG.SLIDING_STOP_3MIN
+        ) {
+          console.log(
+            "   ⏱ [Sliding] " +
+              pos.symbol +
+              " 3min no +20%, now " +
+              gainStr +
+              " — tightened stop"
+          );
+          await executeSell(
+            mint,
+            100,
+            "Sliding stop — 3min, peak +" + (pos.peakGain || 0).toFixed(1) + "%, now " + gainStr
+          );
           delete positions[mint];
           continue;
         }
@@ -2010,7 +2610,11 @@ async function monitor() {
       if (holdMs >= 5 * 60 * 1000 && !pos.volVelocityChecked) {
         pos.volVelocityChecked = true;
         if (pos.entryVol && curVol < pos.entryVol * CONFIG.VOL_VELOCITY_DROP) {
-          console.log("   📉 [VolVelocity] " + pos.symbol + " vol dropped >40% from entry — exiting");
+          console.log(
+            "   📉 [VolVelocity] " +
+              pos.symbol +
+              " vol dropped >40% from entry — exiting"
+          );
           await executeSell(mint, 100, "Volume velocity — 5min vol fell 40%+ from entry");
           delete positions[mint];
           continue;
@@ -2022,774 +2626,20 @@ async function monitor() {
         const buys5m = dex.buys5m || 0;
         const sells5m = dex.sells5m || 0;
         if (sells5m > 0 && buys5m > 0 && sells5m > buys5m * 1.5) {
-          console.log("   📉 [BuySell] " + pos.symbol + " sells dominating " + sells5m + ">" + buys5m + " — exiting");
-          await executeSell(mint, 100, "Buy/sell ratio — sells " + sells5m + " vs buys " + buys5m + " at 5min");
+          console.log(
+            "   📉 [BuySell] " +
+              pos.symbol +
+              " sells dominating " +
+              sells5m +
+              ">" +
+              buys5m +
+              " — exiting"
+          );
+          await executeSell(
+            mint,
+            100,
+            "Buy/sell ratio — sells " + sells5m + " vs buys " + buys5m + " at 5min"
+          );
           delete positions[mint];
           continue;
         }
-      }
-
-      if (holdMs >= 5 * 60 * 1000 && !pos.momentumChecked && pos.mcapSnapshots.length >= 2) {
-        pos.momentumChecked = true;
-        const snap1 = pos.mcapSnapshots[0];
-        const snap5 = pos.mcapSnapshots[pos.mcapSnapshots.length - 1];
-        if (snap5.mcap < snap1.mcap * CONFIG.MOMENTUM_DROP) {
-          console.log("   📉 [Momentum] " + pos.symbol + " mcap fell 15%+ from T+1min — rug pattern | " + gainStr);
-          await executeSell(mint, 100, "MCap momentum — peaked at T+1min, now -" + ((1 - snap5.mcap / snap1.mcap) * 100).toFixed(0) + "% from that");
-          delete positions[mint];
-          continue;
-        }
-      }
-
-      if (gain < 0 && holdMs < 45000) continue;
-
-      if (CONFIG.BREAKEVEN_EXIT && !pos.tier1) {
-        const peak = pos.peakGain || 0;
-        let floor = null;
-
-        if (peak >= 60) floor = null;
-        else if (peak >= 20) floor = 15;
-        else if (peak >= 15) floor = 10;
-        else if (peak >= 10) floor = 5;
-        else if (peak >= 4) floor = 3;
-
-        if (floor !== null && gain <= floor) {
-          const floorStr = floor > 0 ? "+" + floor + "%" : "0%";
-          await executeSell(mint, 100, "Break-even exit — peak +" + peak.toFixed(1) + "% → floor " + floorStr);
-          delete positions[mint];
-          continue;
-        }
-      }
-
-      if (gain <= CONFIG.STOP_LOSS_PCT) {
-        await executeSell(mint, 100, "Stop loss " + gainStr);
-        delete positions[mint];
-        continue;
-      }
-
-      if (pos.prevVol > 0 && curVol < pos.prevVol * (1 - CONFIG.VOLUME_DROP_PCT)) {
-        await executeSell(mint, 100, "Volume crash -50%");
-        delete positions[mint];
-        continue;
-      }
-      pos.prevVol = curVol;
-
-      const peak = pos.peakGain || 0;
-      const triggers = CONFIG.PROFIT_LOCK_TRIGGERS;
-      let hitTrigger = null;
-
-      for (let t = triggers.length - 1; t >= 0; t--) {
-        if (peak >= triggers[t].gain) {
-          hitTrigger = triggers[t];
-          break;
-        }
-      }
-
-      if (hitTrigger) {
-        if (!pos.lockedFloor || hitTrigger.floor > pos.lockedFloor) {
-          pos.lockedFloor = hitTrigger.floor;
-          console.log("🔒 [Floor Lock] " + pos.symbol + " peak +" + peak.toFixed(1) + "% → floor locked at +" + pos.lockedFloor + "%");
-        }
-
-        if (gain <= pos.lockedFloor) {
-          await executeSell(mint, 100, "Floor hit +" + pos.lockedFloor + "% → now " + gainStr);
-          delete positions[mint];
-          continue;
-        }
-
-        if (!pos.lastPeak || peak > pos.lastPeak) {
-          pos.lastPeak = peak;
-          pos.lastPeakTime = Date.now();
-        }
-
-        if (pos.lastPeakTime && (Date.now() - pos.lastPeakTime) >= CONFIG.TRAIL_STALL_MS) {
-          await executeSell(mint, 100, "Trail stall — peak +" + peak.toFixed(1) + "% for 30s");
-          delete positions[mint];
-          continue;
-        }
-      }
-    }
-  } finally {
-    monitorRunning = false;
-  }
-}
-
-// ==========================================
-// CLEANER + WATCHLIST
-// ==========================================
-async function cleanDeadPositions() {
-  if (cleanerRunning) return;
-  cleanerRunning = true;
-
-  try {
-    const mints = Object.keys(positions);
-    if (mints.length === 0) return;
-
-    for (let i = 0; i < mints.length; i++) {
-      const mint = mints[i];
-      const pos = positions[mint];
-      if (!pos || !pos.symbol || !pos.entryTime) continue;
-
-      const heldMs = Date.now() - pos.entryTime;
-      const peakGain = pos.peakGain || 0;
-
-      if (heldMs < CONFIG.DEAD_HOLD_MS) continue;
-      if (peakGain > CONFIG.DEAD_MAX_PEAK_PCT) continue;
-      if (pos.lockedFloor) continue;
-
-      const dex = await fetchDex(mint, 2);
-      if (!dex) {
-        console.log("   🧹 [Cleaner] No data for " + pos.symbol + " after " + Math.round(heldMs / 60000) + "min — force cleaning");
-        tg(
-          "🧹 *Dead Position Cleaned — " + pos.symbol + "*\n" +
-          "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-          "⏱ Held: " + Math.round(heldMs / 60000) + "min\n" +
-          "📉 Reason: No market data — coin likely dead\n" +
-          "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-          "Mint: `" + mint + "`"
-        );
-        await executeSell(mint, 100, "Cleaner — no data after " + Math.round(heldMs / 60000) + "min");
-        delete positions[mint];
-        continue;
-      }
-
-      const gain = pos.buyPrice > 0 ? ((dex.mcap - pos.buyPrice) / pos.buyPrice) * 100 : 0;
-      const gainStr = (gain >= 0 ? "+" : "") + gain.toFixed(1) + "%";
-
-      if (gain > CONFIG.DEAD_EXIT_THRESHOLD) continue;
-
-      console.log("   🧹 [Cleaner] " + pos.symbol + " held " + Math.round(heldMs / 60000) + "min | peak +" + peakGain.toFixed(1) + "% | now " + gainStr + " — cleaning");
-
-      tg(
-        "🧹 *Dead Position Cleaned — " + pos.symbol + "*\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "⏱ Held: " + Math.round(heldMs / 60000) + "min\n" +
-        "📈 Peak: +" + peakGain.toFixed(1) + "%\n" +
-        "💰 Exit: " + gainStr + "\n" +
-        "📉 Reason: Down " + gainStr + " after 10min with no momentum\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "Mint: `" + mint + "`"
-      );
-
-      await executeSell(mint, 100, "Cleaner — held " + Math.round(heldMs / 60000) + "min, peak +" + peakGain.toFixed(1) + "%, now " + gainStr);
-      delete positions[mint];
-    }
-  } catch (e) {
-    console.error("[Cleaner] Error:", e.message);
-  } finally {
-    cleanerRunning = false;
-  }
-}
-
-async function scanWatchlist() {
-  if (watchlist.size === 0) return;
-
-  const now = Date.now();
-  for (const [mint, w] of watchlist) {
-    if (positions[mint]) {
-      watchlist.delete(mint);
-      continue;
-    }
-
-    const elapsed = now - w.addedAt;
-    if (elapsed > 5 * 60 * 1000) {
-      console.log("   👁 [" + w.symbol + "] 5min expired — dropped");
-      watchlist.delete(mint);
-      continue;
-    }
-
-    if (elapsed > CONFIG.WATCH_FAST_WINDOW_MS && w.lastScanAt && now - w.lastScanAt < CONFIG.WATCH_SLOW_MS) {
-      continue;
-    }
-    w.lastScanAt = now;
-
-    try {
-      const dex = await fetchDex(mint, 2);
-      if (!dex) continue;
-
-      if (w.firstSeenAt) {
-        const bestTs = (dex.pairCreatedAt && dex.pairCreatedAt > 0)
-          ? Math.min(w.firstSeenAt, dex.pairCreatedAt)
-          : w.firstSeenAt;
-        dex.ageMin = (Date.now() - bestTs) / 60000;
-        dex.ageHours = dex.ageMin / 60;
-      }
-
-      if (!w.mcapHistory) w.mcapHistory = [];
-      w.mcapHistory.push({ mcap: dex.mcap, ts: Date.now() });
-      if (w.mcapHistory.length > 10) w.mcapHistory.shift();
-
-      const result = await runFilters(mint, dex);
-      const bar = "█".repeat(result.score) + "░".repeat(result.total - result.score);
-
-      if (w.lastLoggedScore !== result.score) {
-        w.lastLoggedScore = result.score;
-        console.log("   👁 [" + w.symbol + "] " + result.score + "/7 [" + bar + "] " + Math.round(elapsed / 1000) + "s");
-      }
-
-      if (result.pass) {
-        let slopeOk = true;
-        if (w.mcapHistory.length >= CONFIG.SLOPE_MIN_READINGS) {
-          const oldest = w.mcapHistory[0].mcap;
-          const newest = w.mcapHistory[w.mcapHistory.length - 1].mcap;
-          slopeOk = (newest - oldest) > CONFIG.SLOPE_MIN;
-        }
-
-        if (slopeOk) {
-          if (!positions[mint] && !buying.has(mint) && !w.alerted) {
-            w.alerted = true;
-            logPaperTrade && logPaperTrade(mint, dex, result, "watchlist");
-            console.log("   👁 [" + w.symbol + "] 7/7 + slope — AUTO-BUY via queue");
-            tgWithButtons(
-              "🪨 *Watchlist 7/7 — " + dex.name + " (" + dex.symbol + ")*\n" +
-              "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-              "📊 Score: *7/7* | MCap trending up ✅ | ⚠️ Wallet didn't buy\n" +
-              "💰 MCap: $" + Math.round(dex.mcap).toLocaleString() + "\n" +
-              "💧 Liq: $" + Math.round(dex.liq).toLocaleString() + "\n" +
-              "📈 Vol: $" + Math.round(dex.vol24h).toLocaleString() + "\n" +
-              "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-              "Mint: `" + mint + "`",
-              [[
-                { text: "🔄 Refresh", callback_data: "refresh:" + mint },
-                { text: "🚀 Force Buy", callback_data: "buy:" + mint },
-              ]]
-            );
-            await queueBuyRequest(mint, dex, result, "watchlist");
-          }
-        }
-      } else if (result.score <= 5) {
-        console.log("   👁 [" + w.symbol + "] Score dropped to " + result.score + "/7 — removed");
-        watchlist.delete(mint);
-      }
-    } catch (e) {
-      console.error("Watchlist error [" + w.symbol + "]:", e.message);
-    }
-  }
-}
-
-// ==========================================
-// MIGRATION / QUEUE HANDLING
-// ==========================================
-async function handleMigration(mint, source) {
-  let entry = processedMints.get(mint);
-  if (entry && entry.retries >= CONFIG.RESCAN_MAX) return;
-  if (entry && Date.now() - entry.lastTry < 5000) return;
-
-  processedMints.set(mint, {
-    retries: (entry && entry.retries || 0) + 1,
-    lastTry: Date.now(),
-    firstSeenAt: (entry && entry.firstSeenAt) || Date.now(),
-    initialMcap: (entry && entry.initialMcap) || null
-  });
-
-  if (processedMints.size > 1000) {
-    const keys = Array.from(processedMints.keys());
-    keys.slice(0, 300).forEach((k) => processedMints.delete(k));
-  }
-
-  const isRescan = entry && entry.retries > 0;
-  console.log("\n🎓 [" + source + "]" + (isRescan ? " RESCAN #" + entry.retries : "") + " " + mint);
-
-  let walletBought = false;
-
-  if (!isRescan) {
-    const fullyMigrated = await isFullyMigrated(mint);
-    if (!fullyMigrated) {
-      console.log("   ⏭ [" + mint.slice(0, 8) + "] still bonding — retry later");
-      return;
-    }
-
-    const [delayResult, walletBoughtResult, bondingResult] = await Promise.all([
-      new Promise((r) => setTimeout(r, CONFIG.POST_MIGRATION_DELAY_MS)),
-      migrationWalletBoughtThis(mint),
-      checkBondingHistory(mint),
-    ]);
-
-    walletBought = walletBoughtResult;
-
-    if (bondingResult && bondingResult.rug) {
-      console.log("   🧬 Bonding rug pattern — skipping " + mint.slice(0, 8) + " | " + bondingResult.reason);
-      tg(
-        "🧬 *Bonding rug pattern — skipped*\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "🔎 Score: " + bondingResult.score + "/" + CONFIG.BONDING_MAX_SCORE + " (" + bondingResult.txs + " curve txs)\n" +
-        "📋 Detail: " + bondingResult.reason + "\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "Mint: `" + mint + "`"
-      );
-      failedMints.add(mint);
-      return;
-    }
-
-    if (walletBought) {
-      tg("⭐ *Migration wallet BOUGHT* — ultra-priority!\nMint: `" + mint + "`");
-    }
-  } else {
-    await new Promise((r) => setTimeout(r, 1000));
-  }
-
-  const dex = await fetchDex(mint);
-  if (!dex) {
-    console.log("   ⚠️ No data — rescanning in 13s");
-    setTimeout(() => {
-      const e = processedMints.get(mint);
-      if (e && e.retries < CONFIG.RESCAN_MAX) queueMigration(mint, "Rescan", 1);
-    }, CONFIG.RESCAN_DELAY_MS);
-    return;
-  }
-
-  const entry2 = processedMints.get(mint);
-  const firstSeenAt = (entry2 && entry2.firstSeenAt) || Date.now();
-  const bestTs = (dex.pairCreatedAt && dex.pairCreatedAt > 0)
-    ? Math.min(firstSeenAt, dex.pairCreatedAt)
-    : firstSeenAt;
-  dex.ageMin = (Date.now() - bestTs) / 60000;
-  dex.ageHours = dex.ageMin / 60;
-
-  const ageStr = fmtAge(dex.ageMin);
-
-  console.log("\n   ╔══════════════════════════════════════╗");
-  console.log("   ║  " + dex.name + " (" + dex.symbol + ")");
-  console.log("   ║  MCap: $" + Math.round(dex.mcap).toLocaleString() + "  Liq: $" + Math.round(dex.liq).toLocaleString());
-  console.log("   ║  Vol: $" + Math.round(dex.vol24h).toLocaleString() + "  Age: " + ageStr);
-  console.log("   ╚══════════════════════════════════════╝");
-
-  const result = await runFilters(mint, dex);
-  const bar = "█".repeat(result.score) + "░".repeat(result.total - result.score);
-  console.log("   Score: " + result.score + "/7 [" + bar + "] " + (result.pass ? "🟢 BUYING" : "🔴 SKIP"));
-
-  Object.values(result.checks).forEach((c) => {
-    console.log("   " + (c.pass ? "✅" : "❌") + " " + c.label + ": " + c.val);
-  });
-
-  try { brain.observeCoin(dex.symbol, dex.name, result.score, result.total); } catch (e) {}
-
-  const advice = CONFIG.BRAIN_ENABLED
-    ? brain.evaluate(dex, pnlTrades)
-    : { nudge: 0, mood: "neutral", signals: [], summary: "🧠 Brain: disabled", hot: false };
-
-  console.log("🧠 " + advice.summary);
-
-  if (!result.pass) {
-    const isFreshData = dex.ageMin < 2;
-    const liqZero = !result.checks.liq.pass && dex.liq === 0 && isFreshData;
-    const mcapZero = !result.checks.mcap.pass && dex.mcap === 0 && isFreshData;
-    const retries = entry && entry.retries || 0;
-
-    if ((liqZero || mcapZero) && retries < CONFIG.RESCAN_MAX) {
-      setTimeout(() => {
-        const e = processedMints.get(mint);
-        if (e && e.retries < CONFIG.RESCAN_MAX) queueMigration(mint, "Rescan", 1);
-      }, CONFIG.RESCAN_DELAY_MS);
-      return;
-    }
-
-    if (result.score >= 5) {
-      tgWithButtons(
-        "🔴 *#" + dex.symbol + "* | MC: *$" + Math.round(dex.mcap).toLocaleString() + "* | Score: *" + result.score + "/7*\n" +
-        "Liq: $" + Math.round(dex.liq).toLocaleString() + " | Vol: $" + Math.round(dex.vol24h).toLocaleString() + " | " + (dex.hasTwitter ? "🐦X" : "🚫NoX") + "\n" +
-        "[📊 Chart](https://dexscreener.com/solana/" + mint + ") | [🐦 Birdeye](https://birdeye.so/token/" + mint + "?chain=solana) | [⚡ Swap](https://jup.ag/swap/SOL-" + mint + ")\n" +
-        mint,
-        [[
-          { text: "🔄 Refresh", callback_data: "refresh:" + mint },
-          { text: "🟢 Force Buy", callback_data: "buy:" + mint },
-        ]]
-      );
-    }
-
-    if (result.score >= 5 && !positions[mint] && !watchlist.has(mint)) {
-      if (watchlist.size >= 5) {
-        const oldestMint = watchlist.keys().next().value;
-        watchlist.delete(oldestMint);
-      }
-
-      watchlist.set(mint, {
-        score: result.score,
-        symbol: dex.symbol,
-        name: dex.name,
-        addedAt: Date.now(),
-        firstSeenAt,
-        phase: "fast",
-        lastSlowScan: null,
-        mcapHistory: [{ mcap: dex.mcap, ts: Date.now() }],
-      });
-
-      tg(
-        "👁 *Watchlist Added — " + dex.name + " (" + dex.symbol + ")*\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "📊 Score: *" + result.score + "/7* — checking every 8s\n" +
-        "💰 MCap: $" + Math.round(dex.mcap).toLocaleString() + "\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "Mint: `" + mint + "`"
-      );
-    }
-    return;
-  }
-
-  if (CONFIG.BRAIN_ENABLED && advice.mood === "cooling" && advice.nudge <= 0) {
-    console.log("   🧠 Brain blocked — cooling mood, nudge " + advice.nudge + " [" + dex.symbol + "]");
-    tg("🧠 *Brain blocked* — cooling session\n*" + dex.name + " (" + dex.symbol + ")*\n" + advice.summary + "\nMint: `" + mint + "`");
-    return;
-  }
-
-  if (walletBought) {
-    const washCheck = checkWashTrading(dex);
-    const bundleCheck = await checkBundle(mint);
-    if (!washCheck.wash && !bundleCheck.bundled) {
-      if (paperLog && paperLog.logPaperTrade) paperLog.logPaperTrade(mint, dex, result, "migration-snipe");
-    }
-    console.log("   ⭐ 7/7 + wallet bought — AUTO-BUY:", dex.symbol);
-    tg(
-      "⭐ *Auto-Buy Triggered — " + dex.name + " (" + dex.symbol + ")*\n" +
-      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-      "📊 Score: *7/7* | Migration wallet bought ✅\n" +
-      "💰 MCap: $" + Math.round(dex.mcap).toLocaleString() + "\n" +
-      "💧 Liq: $" + Math.round(dex.liq).toLocaleString() + "\n" +
-      "⏱ Age: " + ageStr + "\n" +
-      "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-      "Mint: `" + mint + "`"
-    );
-    await queueBuyRequest(mint, dex, result, "migration-wallet", undefined, bundleCheck);
-    return;
-  }
-
-  console.log("   🔍 7/7 — wallet didn't buy, scanning slope...");
-  try {
-    await new Promise((r) => setTimeout(r, CONFIG.SLOPE_RECHECK_MS));
-    const dex2 = await fetchDex(mint, 2);
-    if (dex2) {
-      dex2.ageMin = (Date.now() - bestTs) / 60000;
-      dex2.ageHours = dex2.ageMin / 60;
-
-      const result2 = await runFilters(mint, dex2);
-      const slopeOk = (dex2.mcap - dex.mcap) > CONFIG.SLOPE_MIN;
-      const stillPass = result2.pass;
-
-      console.log("   🔍 Re-score: " + result2.score + "/7 | slope " + (slopeOk ? "✅" : "❌") + " | mcap " + Math.round(dex.mcap) + " → " + Math.round(dex2.mcap));
-
-      if (stillPass && slopeOk) {
-        const washCheck2 = checkWashTrading(dex2);
-        const bundleCheck2 = await checkBundle(mint);
-        if (!washCheck2.wash && !bundleCheck2.bundled) {
-          if (paperLog && paperLog.logPaperTrade) paperLog.logPaperTrade(mint, dex2, result2, "migration-snipe");
-        }
-        console.log("   ✅ 7/7 + slope confirmed — AUTO-BUY:", dex2.symbol);
-        tg(
-          "🪨 *Auto-Buy — " + dex2.name + " (" + dex2.symbol + ")*\n" +
-          "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-          "📊 Score: *7/7* | Slope confirmed ✅\n" +
-          "💰 MCap: $" + Math.round(dex2.mcap).toLocaleString() + "\n" +
-          "💧 Liq: $" + Math.round(dex2.liq).toLocaleString() + "\n" +
-          "📈 Vol: $" + Math.round(dex2.vol24h).toLocaleString() + "\n" +
-          "⏱ Age: " + ageStr + "\n" +
-          "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-          "Mint: `" + mint + "`"
-        );
-        await queueBuyRequest(mint, dex2, result2, "migration-slope", undefined, bundleCheck2);
-        return;
-      }
-
-      const bar2 = "█".repeat(result2.score) + "░".repeat(result2.total - result2.score);
-      tgWithButtons(
-        "⚠️ *7/7 but slope weak — " + dex2.name + " (" + dex2.symbol + ")*\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "📊 Score: *" + result2.score + "/7* [" + bar2 + "]\n" +
-        "📉 MCap drift: $" + Math.round(dex.mcap).toLocaleString() + " → $" + Math.round(dex2.mcap).toLocaleString() + "\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "💰 MCap: $" + Math.round(dex2.mcap).toLocaleString() + "\n" +
-        "💧 Liq: $" + Math.round(dex2.liq).toLocaleString() + "\n" +
-        "⏱ Age: " + ageStr + "\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-        "Mint: `" + mint + "`",
-        [[
-          { text: "🔄 Refresh", callback_data: "refresh:" + mint },
-          { text: "🚀 Force Buy", callback_data: "buy:" + mint },
-        ]]
-      );
-      return;
-    }
-  } catch (e) {
-    console.error("   Slope scan error:", e.message);
-  }
-
-  tgWithButtons(
-    "🪨 *7/7 — " + dex.name + " (" + dex.symbol + ")*\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "📊 Score: *" + result.score + "/7* [" + bar + "] 🟢 All green\n" +
-    "💰 MCap: $" + Math.round(dex.mcap).toLocaleString() + "\n" +
-    "💧 Liq: $" + Math.round(dex.liq).toLocaleString() + "\n" +
-    "⏱ Age: " + ageStr + "\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "⚠️ Could not verify slope\n" +
-    "Mint: `" + mint + "`",
-    [[
-      { text: "🔄 Refresh", callback_data: "refresh:" + mint },
-      { text: "🚀 Force Buy", callback_data: "buy:" + mint },
-    ]]
-  );
-}
-
-// ==========================================
-// MIGRATION QUEUE WORKER
-// ==========================================
-let migrationQueue = [];
-let queueWorkerBusy = false;
-
-function queueMigration(mint, source, priority) {
-  const p = priority === undefined ? (source === "WebSocket" ? 0 : 1) : priority;
-
-  const existing = migrationQueue.findIndex((q) => q.mint === mint);
-  if (existing > -1) {
-    if (p < migrationQueue[existing].priority) {
-      migrationQueue[existing].priority = p;
-      migrationQueue.sort((a, b) => a.priority - b.priority);
-    }
-    return;
-  }
-
-  migrationQueue.push({ mint, source, priority: p, queuedAt: Date.now() });
-  migrationQueue.sort((a, b) => a.priority - b.priority);
-  console.log("📥 Queued [" + source + " P" + p + "] " + mint.slice(0, 8) + " | queue=" + migrationQueue.length);
-
-  if (!queueWorkerBusy) runQueueWorker();
-}
-
-async function runQueueWorker() {
-  queueWorkerBusy = true;
-  while (migrationQueue.length > 0) {
-    const item = migrationQueue.shift();
-    const waitedMs = Date.now() - (item.queuedAt || Date.now());
-    if (waitedMs > CONFIG.MAX_AGE_HOURS * 60 * 60 * 1000) {
-      console.log("   🗑️ [" + item.mint.slice(0, 8) + "] dropped — stale in queue " + Math.round(waitedMs / 1000) + "s");
-      continue;
-    }
-    try {
-      await handleMigration(item.mint, item.source);
-    } catch (e) {
-      console.error("Queue worker error [" + item.mint.slice(0, 8) + "]:", e.message);
-    }
-  }
-  queueWorkerBusy = false;
-}
-
-// ==========================================
-// WEBSOCKET
-// ==========================================
-function connectWS() {
-  console.log("🔌 Connecting Helius WebSocket...");
-
-  const heliusKey = process.env.HELIUS_API_KEY || "0528a525-35e6-4fb9-8c54-90fcaf29a7ca";
-  const wsUrl = "wss://mainnet.helius-rpc.com/?api-key=" + heliusKey;
-  const ws = new WebSocket(wsUrl);
-
-  ws.on("open", () => {
-    console.log("✅ Helius WebSocket connected — subscribing to migration program logs");
-    ws.send(JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "logsSubscribe",
-      params: [
-        { mentions: [CONFIG.MIGRATION_PROGRAM] },
-        { commitment: "confirmed" }
-      ]
-    }));
-  });
-
-  ws.on("message", async (raw) => {
-    try {
-      const msg = JSON.parse(raw.toString());
-      if (msg && msg.id === 1 && msg.result !== undefined) {
-        console.log("✅ Helius logsSubscribe confirmed — subId:", msg.result);
-        return;
-      }
-
-      const logs = msg && msg.params && msg.params.result && msg.params.result.value
-        ? msg.params.result.value.logs || []
-        : [];
-
-      if (!logs.length) return;
-
-      let mint = null;
-      for (let i = 0; i < logs.length; i++) {
-        const match = logs[i].match(/mint[:\s]+([1-9A-HJ-NP-Za-km-z]{32,44})/i);
-        if (match && match[1]) {
-          mint = match[1];
-          break;
-        }
-      }
-
-      if (!mint && msg && msg.params && msg.params.result && msg.params.result.value && msg.params.result.value.signature) {
-        mint = await extractMint(msg.params.result.value.signature).catch(() => null);
-      }
-
-      if (!mint) return;
-
-      const entry = processedMints.get(mint);
-      if (entry && entry.retries >= CONFIG.RESCAN_MAX) return;
-      if (entry && Date.now() - entry.lastTry < 2000) return;
-
-      console.log("⚡ [Helius WS] Migration: " + mint.slice(0, 8) + "...");
-      queueMigration(mint, "WebSocket", 0);
-    } catch (err) {
-      console.error("WS parse:", err.message);
-    }
-  });
-
-  ws.on("error", (e) => console.error("WS error:", e.message));
-  ws.on("close", () => {
-    console.log("⚠️ WS closed — reconnecting in 3s...");
-    setTimeout(connectWS, 3000);
-  });
-}
-
-// ==========================================
-// RPC POLL
-// ==========================================
-async function extractMint(signature) {
-  try {
-    const tx = await connection.getParsedTransaction(signature, {
-      maxSupportedTransactionVersion: 0,
-      commitment: "confirmed",
-    });
-
-    if (!tx || !tx.meta) return null;
-
-    for (const b of tx.meta.postTokenBalances || []) {
-      if (b.mint && !SKIP.has(b.mint)) return b.mint;
-    }
-
-    for (const b of tx.meta.preTokenBalances || []) {
-      if (b.mint && !SKIP.has(b.mint)) return b.mint;
-    }
-
-    for (const g of tx.meta.innerInstructions || []) {
-      for (const ix of g.instructions || []) {
-        const m = ix.parsed && ix.parsed.info && ix.parsed.info.mint;
-        if (m && !SKIP.has(m)) return m;
-      }
-    }
-
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-async function poll() {
-  try {
-    const sigs = await connection.getSignaturesForAddress(migrationPk, { limit: 50, until: lastSig || undefined });
-    if (!sigs || !sigs.length) return;
-
-    lastSig = sigs[0].signature;
-    const newSigs = sigs.filter((s) => !processedSigs.has(s.signature));
-    if (!newSigs.length) return;
-
-    for (let i = 0; i < newSigs.length; i++) {
-      const s = newSigs[i];
-      processedSigs.add(s.signature);
-
-      const mint = await extractMint(s.signature);
-      if (!mint) continue;
-
-      const entry = processedMints.get(mint);
-      if (entry && entry.retries >= CONFIG.RESCAN_MAX) continue;
-      if (entry && Date.now() - entry.lastTry < 5000) continue;
-
-      console.log("🔍 [RPC] Migration: " + mint.slice(0, 8) + "...");
-      queueMigration(mint, "RPC Poll", 1);
-    }
-
-    if (processedSigs.size > 500) {
-      const arr = Array.from(processedSigs);
-      arr.slice(0, 200).forEach((s) => processedSigs.delete(s));
-    }
-  } catch (e) {
-    const msg = e.message || "";
-    if (msg.indexOf("429") > -1) {
-      console.log("⏳ RPC rate limited — pausing 30s");
-      await new Promise((r) => setTimeout(r, 30000));
-    } else {
-      console.error("Poll error:", msg);
-    }
-  }
-}
-
-// ==========================================
-// START
-// ==========================================
-console.log("╔══════════════════════════════════════════════╗");
-console.log("║   PUMP.FUN MIGRATION SNIPER — CLEAN BUILD  ║");
-console.log("╚══════════════════════════════════════════════╝");
-console.log("Wallet  : " + wallet.publicKey.toBase58());
-console.log("Watching: " + CONFIG.MIGRATION_PROGRAM);
-console.log("Buy     : " + CONFIG.BUY_AMOUNT_SOL + " SOL");
-console.log("Filters : age-aware Vol/MCap + Top10% + LP/holder");
-
-tg(
-  "🤖 *Migration Sniper LIVE*\n" +
-  "Wallet: `" + wallet.publicKey.toBase58() + "`\n\n" +
-  "*Filters:*\n" +
-  "• MCap > $" + CONFIG.MIN_MCAP_USD.toLocaleString() + "\n" +
-  "• Liq $" + CONFIG.MIN_LIQUIDITY_USD.toLocaleString() + "–$" + CONFIG.MAX_LIQUIDITY_USD.toLocaleString() + "\n" +
-  "• Vol > $" + CONFIG.MIN_VOLUME_USD.toLocaleString() + "\n" +
-  "• Age < " + (CONFIG.MAX_AGE_HOURS * 60).toFixed(0) + "min\n" +
-  "• Holders ≥ " + CONFIG.MIN_HOLDERS + " | LP/holder ≥ $" + CONFIG.MIN_LP_PER_HOLDER + "\n" +
-  "• Vol/MCap: 0s=0.05x | 30s=0.15x | 2m=0.3x | 10m=0.8x\n" +
-  "• Top10%: 0s<50% | 30s<45% | 2m<40% | 10m<20%\n\n" +
-  "*Protection:*\n" +
-  "• Stop " + CONFIG.STOP_LOSS_PCT + "% | Vol crash -50% | Break-even exit ON\n\n" +
-  "*Max positions:* " + CONFIG.MAX_POSITIONS + "\n" +
-  "*Watchlist:* 5+/7 → 8s | drops at 3/7"
-);
-
-setInterval(() => {
-  if (dex429Count > 0) console.log("📊 [1min] DexScreener 429s:", dex429Count);
-  dex429Count = 0;
-}, 60000);
-
-setInterval(() => {
-  console.log("📊 [1hr] PDA misses:", pdaMissCount);
-  pdaMissCount = 0;
-}, 60 * 60 * 1000);
-
-connectWS();
-
-if (CONFIG.TELEGRAM_BOT_TOKEN && CONFIG.TELEGRAM_CHAT_ID) {
-  startCallbackPolling();
-}
-
-setTimeout(() => {
-  console.log("🔍 RPC poll started (backup)...");
-  setInterval(() => {
-    poll().catch((e) => console.error("Poll:", e.message));
-  }, CONFIG.POLL_INTERVAL_MS);
-}, 5000);
-
-setInterval(() => {
-  monitor().catch((e) => console.error("Monitor:", e.message));
-}, CONFIG.MONITOR_INTERVAL_MS);
-
-let watchScanBusy = false;
-setInterval(() => {
-  if (watchScanBusy) return;
-  watchScanBusy = true;
-  scanWatchlist()
-    .catch((e) => console.error("Watchlist:", e.message))
-    .finally(() => { watchScanBusy = false; });
-}, CONFIG.WATCH_SCAN_MS);
-
-setInterval(() => {
-  try { sendSessionSummary(); } catch (e) { console.error("Summary:", e.message); }
-}, 3 * 60 * 60 * 1000);
-
-setInterval(() => {
-  cleanDeadPositions().catch((e) => console.error("[Cleaner]:", e.message));
-}, 5 * 60 * 1000);
-
-if (paperLog && paperLog.checkPaperPositions) {
-  setInterval(() => {
-    paperLog.checkPaperPositions(fetchDex, fetchOnChainPoolSol).catch((e) => {
-      console.error("[PaperLog] Check error:", e.message);
-    });
-  }, CONFIG.MONITOR_INTERVAL_MS);
-}
